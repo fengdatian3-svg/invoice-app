@@ -6,7 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="發票管家">
-<meta name="application-name" content="發票管家">
 <meta name="theme-color" content="#1a1a2e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -24,7 +23,19 @@
   --ov:rgba(0,0,0,0.58);--cb:rgba(255,255,255,0.11);--cbr:rgba(255,255,255,0.2);
   --tm:#fff;--ts:rgba(255,255,255,0.7);--ac:#FFD166;--ac2:#06D6A0;--ac3:#EF476F;--ac4:#74B9FF;
   --btnbg:rgba(255,255,255,0.15);
+  --fs:14px;/* base font size, controlled by settings */
 }
+body{font-family:'Inter','Noto Sans TC',sans-serif;font-size:var(--fs);min-height:100vh;color:var(--tm);background:#1a1a2e;overflow-x:hidden;overflow-y:auto}
+/* Responsive font scaling */
+.tab-btn{font-size:calc(var(--fs) * 0.78)!important}
+.sbox-title{font-size:calc(var(--fs) * 0.85)!important}
+.stat-card .val{font-size:calc(var(--fs) * 0.93)!important}
+.stat-card .lbl{font-size:calc(var(--fs) * 0.64)!important}
+.rec-name{font-size:calc(var(--fs) * 0.85)!important}
+.rec-meta{font-size:calc(var(--fs) * 0.71)!important}
+.rec-amt{font-size:calc(var(--fs) * 0.92)!important}
+.inp{font-size:calc(var(--fs) * 0.92)!important}
+.btn{font-size:calc(var(--fs) * 0.85)!important}
 body{font-family:'Inter','Noto Sans TC',sans-serif;min-height:100vh;color:var(--tm);background:#1a1a2e;overflow-x:hidden;overflow-y:auto}
 #app-bg{position:fixed;inset:0;background-size:cover;background-position:center;transition:background .5s;z-index:0}
 #app-bg::after{content:'';position:absolute;inset:0;background:var(--ov)}
@@ -61,8 +72,8 @@ body{font-family:'Inter','Noto Sans TC',sans-serif;min-height:100vh;color:var(--
 .bbar.ok{background:var(--ac2)}.bbar.warn{background:var(--ac)}.bbar.over{background:var(--ac3)}
 .bbar-labels{display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px}
 
-/* INPUTS — fixed no overflow */
-.inp{width:100%;background:rgba(255,255,255,0.1);border:.5px solid var(--cbr);border-radius:8px;padding:8px 10px;color:#fff;font-size:13px;font-family:'Inter','Noto Sans TC',sans-serif;outline:none;display:block;min-width:0}
+/* INPUTS — fixed no overflow, date full row */
+.inp{width:100%;background:rgba(255,255,255,0.1);border:.5px solid var(--cbr);border-radius:8px;padding:8px 10px;color:#fff;font-family:'Inter','Noto Sans TC',sans-serif;outline:none;display:block;min-width:0;box-sizing:border-box}
 .inp::placeholder{color:rgba(255,255,255,0.35)}
 .inp:focus{border-color:var(--ac);background:rgba(255,255,255,0.14)}
 select.inp option{background:#1a1a2e}
@@ -70,6 +81,14 @@ select.inp option{background:#1a1a2e}
 .inp-row{display:grid;gap:6px;margin-bottom:7px}
 .inp-row.c2{grid-template-columns:1fr 1fr}
 .inp-row.c21{grid-template-columns:2fr 1fr}
+/* Date input: always full width, never truncated */
+input[type="date"].inp{
+  width:100%;
+  min-width:0;
+  -webkit-appearance:none;
+  appearance:none;
+  color-scheme:dark;
+}
 
 /* BUTTONS */
 .btn-row{display:flex;gap:6px;margin-top:4px}
@@ -203,7 +222,7 @@ select.inp option{background:#1a1a2e}
   <button class="tab-btn" id="tb1" onclick="gotoTab(1,this)">➕ <span id="t1">新增</span></button>
   <button class="tab-btn" id="tb2" onclick="gotoTab(2,this)">📋 <span id="t2">明細</span></button>
   <button class="tab-btn" id="tb3" onclick="gotoTab(3,this)">💰 <span id="t3">預算</span></button>
-  <button class="tab-btn" id="tb4" onclick="gotoTab(4,this)">👫 <span id="t4">共同</span></button>
+  <button class="tab-btn" id="tb4" onclick="gotoTab(4,this)">🫱🫲 <span id="t4">共同</span></button>
 </div>
 
 <!-- ===== TAB 0: 總覽 ===== -->
@@ -409,6 +428,15 @@ select.inp option{background:#1a1a2e}
 <div class="modal">
   <button class="cls" onclick="closeM('set-modal')">✕</button>
   <h3 id="set-ttl">⚙️ 設定</h3>
+  <!-- 字型大小 -->
+  <div class="set-row">
+    <div><div class="set-lbl" id="set-fs-lbl">🔤 字型大小</div><div class="set-sub" id="set-fs-sub">調整後所有文字等比例縮放，不會跑版</div></div>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <button onclick="changeFontSize(-1)" style="width:28px;height:28px;border-radius:50%;border:.5px solid var(--cbr);background:var(--btnbg);color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">−</button>
+      <span id="fs-val" style="font-size:12px;color:var(--ac);min-width:30px;text-align:center">14</span>
+      <button onclick="changeFontSize(1)" style="width:28px;height:28px;border-radius:50%;border:.5px solid var(--cbr);background:var(--btnbg);color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">+</button>
+    </div>
+  </div>
   <!-- 結算日 -->
   <div class="set-row">
     <div><div class="set-lbl" id="set-period-lbl">每月結算日</div><div class="set-sub" id="set-period-sub">每個月幾號重新計算</div></div>
@@ -490,7 +518,7 @@ select.inp option{background:#1a1a2e}
 // Using a shared public demo DB — for production, replace with your own Firebase config
 const FB_CONFIG = {
   apiKey: "AIzaSyDk91n3y06KEzy8e387Oyk5JlEjk4d67rw",
-  databaseURL: "https://invoice-app-d2dcd-default-rtdb.asia-southeast1.firebasedatabase.app"
+  databaseURL: "https://invoice-app-shared-default-rtdb.firebaseio.com"
 };
 let fbDB = null;
 let fbListener = null;
@@ -754,6 +782,7 @@ function saveShBudget(){
   shBudget.limit=parseFloat(document.getElementById('sh-budget').value)||0;
   shBudget.savings=parseFloat(document.getElementById('sh-savings').value)||0;
   localStorage.setItem('inv_sh_bud',shBudget.limit); localStorage.setItem('inv_sh_sav',shBudget.savings);
+  pushShBudgetToFB();
   updateBudget(); updateAdvice(true);
 }
 function updateBudget(){
@@ -923,7 +952,6 @@ function clearAll(sh=false){
 function saveRecs(){ localStorage.setItem('inv_recs',JSON.stringify(records)); }
 function saveShRecs(){
   localStorage.setItem('inv_sh_recs',JSON.stringify(shRecs));
-  // Sync to Firebase if paired
   if(partnerCode&&fbDB){
     const roomKey=[myCode,partnerCode].sort().join('_');
     fbDB.ref(`rooms/${roomKey}/shRecs`).set(shRecs).catch(()=>{});
@@ -1104,7 +1132,7 @@ function cancelVoice(sh=false){
   const pEl=document.getElementById(pfx+'vpend'); if(pEl) pEl.className='voice-pending';
 }
 
-// ==================== OCR ====================
+// ==================== OCR — Taiwan receipt optimized ====================
 let tessLoaded=false;
 function loadTesseract(cb){
   if(window.Tesseract){tessLoaded=true;cb();return;}
@@ -1113,38 +1141,112 @@ function loadTesseract(cb){
   s.onload=()=>{tessLoaded=true;cb();}; s.onerror=()=>showToast('OCR load failed','err');
   document.head.appendChild(s);
 }
+
+function parseTaiwanReceipt(raw){
+  const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+
+  // ── 1. AMOUNT ──
+  // Priority order for Taiwan receipts:
+  // (a) Line containing 合計/總計/總金額/小計/應收/實收/Amount/Total
+  // (b) Line containing NT$ or $
+  // (c) Largest standalone number
+  let amount=0;
+  const totalKeywords=/合計|總計|總金額|小計|應收|實收|找零前|Total|Amount/i;
+  const skipKeywords=/找零|找錢|Change|Tax|稅/i;
+  // Extract number from a line
+  const extractNum=line=>{
+    const m=line.match(/[\$＄NT\$]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/);
+    if(m) return parseFloat(m[1].replace(/,/g,''));
+    return 0;
+  };
+
+  // Try to find total line
+  for(const line of lines){
+    if(totalKeywords.test(line)&&!skipKeywords.test(line)){
+      const n=extractNum(line);
+      if(n>0&&n<1000000){ amount=n; break; }
+    }
+  }
+
+  // If not found, look for NT$ or $ lines
+  if(!amount){
+    for(const line of lines){
+      if(/NT\$|＄/.test(line)){
+        const n=extractNum(line);
+        if(n>amount&&n<1000000) amount=n;
+      }
+    }
+  }
+
+  // Fallback: largest number in reasonable range (10~99999)
+  if(!amount){
+    const allNums=[...raw.matchAll(/(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d{2,5}(?:\.\d{1,2})?)/g)]
+      .map(m=>parseFloat(m[1].replace(/,/g,'')))
+      .filter(n=>n>=10&&n<100000);
+    if(allNums.length) amount=Math.max(...allNums);
+  }
+
+  // ── 2. DATE ──
+  let date=today();
+  // ROC date: 民國 114年4月1日 or 114/4/1 or 114-04-01
+  const rocMatch=raw.match(/(\d{2,3})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+  if(rocMatch){
+    let y=parseInt(rocMatch[1]), mo=parseInt(rocMatch[2]), d=parseInt(rocMatch[3]);
+    if(y<200) y+=1911; // convert ROC to CE
+    if(y>=2000&&y<=2100&&mo>=1&&mo<=12&&d>=1&&d<=31){
+      date=`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+  }
+  // Western date: 2025/4/1 or 2025-04-01
+  if(date===today()){
+    const ceMatch=raw.match(/(20\d{2})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if(ceMatch){
+      const y=parseInt(ceMatch[1]),mo=parseInt(ceMatch[2]),d=parseInt(ceMatch[3]);
+      if(mo>=1&&mo<=12&&d>=1&&d<=31)
+        date=`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+  }
+
+  // ── 3. ITEM NAME ──
+  // Skip: store header (top 2 lines usually), totals lines, pure numbers, separators
+  const skipLinePatterns=/合計|總計|小計|稅|發票|統編|Tel|電話|地址|感謝|歡迎|收銀|找零|應收|實收|Total|Tax|Thank|Receipt|Invoice|\d{8}|\*{3,}|={3,}|-{3,}/i;
+  const itemLines=lines.filter((l,i)=>{
+    if(i<2) return false; // skip store name / header
+    if(skipLinePatterns.test(l)) return false;
+    if(/^\d+[.,]?\d*$/.test(l)) return false; // pure number
+    if(/^[*=\-_]+$/.test(l)) return false; // separator
+    if(l.length<2||l.length>30) return false;
+    return /[\u4e00-\u9fa5a-zA-Z]/.test(l); // must have Chinese or English
+  });
+  const name=(itemLines[0]||lines.find(l=>/[\u4e00-\u9fa5]/.test(l)&&l.length>1&&l.length<25)||'').substring(0,40);
+
+  // ── 4. STORE NAME (for category classification) ──
+  const storeName=lines.slice(0,3).join(' ');
+
+  return {amount, date, name, raw, storeName};
+}
+
 function handleImage(e,sh=false){
   const file=e.target.files[0]; if(!file) return; e.target.value='';
-  // Always use personal OCR panel (simplified)
   const rEl=document.getElementById('ocr-res'), pEl=document.getElementById('ocr-prog'), bEl=document.getElementById('ocr-bar');
   rEl.style.display='block'; rEl.textContent=t('ocrScanning');
   pEl.style.display='block'; bEl.style.width='0%';
   loadTesseract(async()=>{
     try{
-      // Choose best OCR language for receipt: always include eng + chi_sim for numbers
-      const ocrLang='chi_sim+eng';
-      const result=await Tesseract.recognize(file,ocrLang,{
+      // Use chi_tra (traditional Chinese) + eng for Taiwan receipts
+      const result=await Tesseract.recognize(file,'chi_tra+eng',{
         logger:m=>{ if(m.status==='recognizing text') bEl.style.width=Math.round((m.progress||0)*100)+'%'; }
       });
       pEl.style.display='none';
-      const raw=result.data.text;
-      // Find all numbers, pick the one that looks like a price (has decimal or is between 10-9999)
-      const allNums=[...raw.matchAll(/(\d{1,6}[.,]\d{1,2})|(\d{2,6})/g)]
-        .map(m=>parseFloat((m[1]||m[2]).replace(/,/g,''))).filter(n=>n>0&&n<100000);
-      // Prefer numbers with decimal (prices), then largest
-      const decimalNums=allNums.filter(n=>n%1!==0);
-      const amount=decimalNums.length?Math.max(...decimalNums):(allNums.length?Math.max(...allNums):0);
-      // Extract item name: scan all lines, find one with meaningful text
-      const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l.length>2&&!/^\d+[.,]?\d*$/.test(l)&&!/^[.,\-_=\*]+$/.test(l));
-      // Prefer lines that aren't just store headers (shorter, product-like)
-      const meaningfulLine = lines.find(l=>l.length>2&&l.length<30&&/[\u4e00-\u9fa5a-zA-Z]/.test(l)) || lines[0] || '';
-      const name=meaningfulLine.substring(0,40);
+      const {amount, date, name, raw, storeName}=parseTaiwanReceipt(result.data.text);
       const pfx=sh?'sh-':'';
       if(amount>0) document.getElementById(pfx+'inp-amt').value=Math.round(amount*100)/100;
       if(name) document.getElementById(pfx+'inp-name').value=name;
-      const sc=autoClassify(raw+' '+name); document.getElementById(pfx+'inp-cat').value=sc;
-      rEl.textContent=`${t('ocrDone')}: ${name||'—'} $${amount>0?amount:'?'} [${ce(sc)}${cl(sc)}]`;
-    }catch(err){ pEl.style.display='none'; rEl.textContent=t('ocrFail'); }
+      document.getElementById(pfx+'inp-date').value=date;
+      const sc=autoClassify(raw+' '+name+' '+storeName);
+      document.getElementById(pfx+'inp-cat').value=sc;
+      rEl.textContent=`${t('ocrDone')}: ${name||'—'} $${amount>0?amount:'?'} ${date} [${ce(sc)}${cl(sc)}]`;
+    }catch(err){ pEl.style.display='none'; rEl.textContent=t('ocrFail')+': '+err.message; }
   });
 }
 
@@ -1174,20 +1276,109 @@ function unpair(){
   partnerCode=''; localStorage.setItem('inv_partner','');
   updatePairUI(); updateAll();
 }
+// ==================== FIREBASE PAIRING ====================
+function updatePairUI(){
+  const paired=!!partnerCode;
+  document.getElementById('pair-status-div').innerHTML=`<div class="pair-badge ${paired?'on':'off'}">${paired?'🟢':'⚪'} ${t(paired?'connected':'disconnected')}</div>`;
+  document.getElementById('my-code').textContent=myCode;
+  document.getElementById('pair-info-div').style.display=paired?'block':'none';
+  document.getElementById('unpair-btn').textContent=t('unpairBtn');
+  if(paired) document.getElementById('paired-txt').textContent=`${t('pairedTxt')}: ${partnerCode}`;
+  ['sh-bud-box','sh-add-box','sh-advice-box','sh-chart-box','sh-list-box'].forEach(id=>{
+    document.getElementById(id).style.display=paired?'block':'none';
+  });
+}
+function doPair(){
+  const code=document.getElementById('partner-inp').value.trim().toUpperCase();
+  if(!/^[A-Z0-9]{6}$/.test(code)){showToast(t('pairFail'),'err');return;}
+  if(code===myCode){showToast(t('pairSelf'),'err');return;}
+  partnerCode=code; localStorage.setItem('inv_partner',code);
+  showToast(t('pairSuccess'),'ok');
+  updatePairUI();
+  subscribeFB();
+}
+function unpair(){
+  if(partnerCode&&fbDB){
+    const roomKey=[myCode,partnerCode].sort().join('_');
+    try{ fbDB.ref(`rooms/${roomKey}`).off(); fbDB.ref(`pairRequests/${myCode}`).off(); }catch(e){}
+    fbDB.ref(`rooms/${roomKey}/members/${myCode}/paired`).set(false).catch(()=>{});
+  }
+  fbListener=null;
+  partnerCode=''; localStorage.setItem('inv_partner','');
+  updatePairUI(); updateAll();
+}
+
 function subscribeFB(){
   if(!fbDB||!partnerCode) return;
-  if(fbListener){ const old=[myCode,fbListener].sort().join('_'); fbDB.ref(`rooms/${old}`).off(); }
+  // Clean up old listeners
+  try{ fbDB.ref().off(); }catch(e){}
+  fbListener=null;
   const roomKey=[myCode,partnerCode].sort().join('_');
-  // Push our shRecs
-  fbDB.ref(`rooms/${roomKey}/shRecs`).set(shRecs).catch(()=>{});
-  // Listen for changes
-  fbListener=fbDB.ref(`rooms/${roomKey}/shRecs`).on('value', snap=>{
-    const data=snap.val();
-    if(data&&JSON.stringify(data)!==JSON.stringify(shRecs)){
-      shRecs=data; localStorage.setItem('inv_sh_recs',JSON.stringify(shRecs));
-      renderRecs(true); updateChart(true); updateBudget(); updateAdvice(true);
+  const roomRef=fbDB.ref(`rooms/${roomKey}`);
+
+  // Announce online presence
+  roomRef.child(`members/${myCode}`).set({paired:true, code:myCode, ts:Date.now()}).catch(()=>{});
+
+  // Push our current shared data up
+  roomRef.child('shRecs').set(shRecs).catch(()=>{});
+  roomRef.child('shBudget').set(shBudget).catch(()=>{});
+
+  // Subscribe to entire room — syncs everything
+  fbListener=roomRef.on('value', snap=>{
+    const data=snap.val(); if(!data) return;
+
+    // Sync shRecs
+    if(data.shRecs!==undefined){
+      const inc=data.shRecs?( Array.isArray(data.shRecs)?data.shRecs:Object.values(data.shRecs) ):[];
+      if(JSON.stringify(inc)!==JSON.stringify(shRecs)){
+        shRecs=inc; localStorage.setItem('inv_sh_recs',JSON.stringify(shRecs));
+        renderRecs(true); updateChart(true); updateAdvice(true);
+      }
     }
-  }, ()=>{showToast('Firebase sync failed — check network','err');});
+
+    // Sync shBudget
+    if(data.shBudget){
+      const ib=data.shBudget;
+      if(ib.limit!==shBudget.limit||ib.savings!==shBudget.savings){
+        shBudget={limit:ib.limit||0,savings:ib.savings||0};
+        localStorage.setItem('inv_sh_bud',shBudget.limit);
+        localStorage.setItem('inv_sh_sav',shBudget.savings);
+        document.getElementById('sh-budget').value=shBudget.limit||'';
+        document.getElementById('sh-savings').value=shBudget.savings||'';
+        updateBudget();
+      }
+    }
+  }, ()=>{ showToast('Firebase sync error','err'); });
+
+  // Listen for partner pairing us back (they write to our pairRequests node)
+  fbDB.ref(`pairRequests/${myCode}`).on('value', snap=>{
+    const req=snap.val();
+    if(req&&req.from){
+      const theirCode=req.from;
+      if(theirCode!==partnerCode && theirCode!==myCode){
+        // Auto-accept pair from partner device
+        partnerCode=theirCode;
+        localStorage.setItem('inv_partner',theirCode);
+        document.getElementById('partner-inp').value=theirCode;
+        showToast(`🔗 ${theirCode} ${t('pairSuccess')}`,'ok');
+        updatePairUI();
+        subscribeFB();
+      } else if(theirCode===partnerCode && !document.getElementById('pair-info-div').style.display){
+        // Already paired, just notify
+        showToast('🟢 '+t('connected'),'ok');
+      }
+    }
+  });
+
+  // Announce to partner: write to their pairRequests so they auto-pair back
+  fbDB.ref(`pairRequests/${partnerCode}`).set({from:myCode, ts:Date.now()}).catch(()=>{});
+}
+
+// Push shared budget changes to Firebase
+function pushShBudgetToFB(){
+  if(!fbDB||!partnerCode) return;
+  const roomKey=[myCode,partnerCode].sort().join('_');
+  fbDB.ref(`rooms/${roomKey}/shBudget`).set(shBudget).catch(()=>{});
 }
 
 // ==================== BACKGROUND ====================
@@ -1370,6 +1561,18 @@ function showModal(id){
 function closeM(id){ document.getElementById(id).style.display='none'; }
 function closeMOv(e,id){ if(e.target.id===id) closeM(id); }
 
+// ==================== FONT SIZE ====================
+let currentFS=parseInt(localStorage.getItem('inv_fs')||'14');
+function applyFontSize(){
+  document.documentElement.style.setProperty('--fs',currentFS+'px');
+  const el=document.getElementById('fs-val'); if(el) el.textContent=currentFS;
+}
+function changeFontSize(delta){
+  currentFS=Math.min(20,Math.max(11,currentFS+delta));
+  localStorage.setItem('inv_fs',currentFS);
+  applyFontSize();
+}
+
 // ==================== TOAST ====================
 let toastTimer=null;
 function showToast(msg,type=''){
@@ -1397,19 +1600,35 @@ document.getElementById('b-savings').value=budget.savings||'';
 document.getElementById('sh-budget').value=shBudget.limit||'';
 document.getElementById('sh-savings').value=shBudget.savings||'';
 document.getElementById('partner-inp').value=partnerCode;
+applyFontSize();
 applyBg();
 applyI18n();
 updateAll();
-// Firebase init & subscribe if already paired
-try{ initFirebase(); if(partnerCode) subscribeFB(); }catch(e){}
+// Firebase init & subscribe if already paired, also listen for incoming pair requests
+try{
+  initFirebase();
+  if(partnerCode) subscribeFB();
+  else if(fbDB){
+    // Even without partner, listen for someone trying to pair with us
+    fbDB.ref(`pairRequests/${myCode}`).on('value', snap=>{
+      const req=snap.val();
+      if(req&&req.from&&req.from!==myCode&&!partnerCode){
+        const theirCode=req.from;
+        partnerCode=theirCode;
+        localStorage.setItem('inv_partner',theirCode);
+        document.getElementById('partner-inp').value=theirCode;
+        showToast(`🔗 ${theirCode} ${t('pairSuccess')}`,'ok');
+        updatePairUI();
+        subscribeFB();
+      }
+    });
+  }
+}catch(e){ console.warn('Firebase init failed:',e); }
+
 </script>
 
 <script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
-  });
-}
+if("serviceWorker"in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").catch(()=>{});});}
 </script>
 </body>
 </html>
