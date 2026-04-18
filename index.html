@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="發票管家">
+<meta name="application-name" content="發票管家">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="msapplication-TileColor" content="#1a1a2e">
+<meta name="msapplication-TileImage" content="icons/icon-144x144.png">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
+<title>智能發票管家</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Inter:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ov:rgba(0,0,0,0.55);--cb:rgba(255,255,255,0.12);--cbr:rgba(255,255,255,0.22);
+  --tm:#fff;--ts:rgba(255,255,255,0.75);--ac:#FFD166;--ac2:#06D6A0;--ac3:#EF476F;
+  --ac4:#74B9FF;--btnbg:rgba(255,255,255,0.18);
+}
+body{font-family:'Inter','Noto Sans TC',sans-serif;min-height:100vh;color:var(--tm);background:#1a1a2e;overflow-x:hidden}
+#app-bg{position:fixed;inset:0;background-size:cover;background-position:center;transition:all .5s;z-index:0}
+#app-bg::after{content:'';position:absolute;inset:0;background:var(--ov)}
+#app{position:relative;z-index:1;max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+/* topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;backdrop-filter:blur(8px);background:rgba(0,0,0,0.2);border-bottom:.5px solid var(--cbr);position:sticky;top:0;z-index:10;gap:8px}
+.topbar h1{font-size:13px;font-weight:700;color:var(--ac);white-space:nowrap}
+.topbar-btns{display:flex;gap:5px;align-items:center;flex-shrink:0}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:.5px solid var(--cbr);background:var(--btnbg);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:all .2s;flex-shrink:0}
+.icon-btn:active{transform:scale(.92)}
+.lang-sel{background:rgba(255,255,255,0.12);border:.5px solid var(--cbr);border-radius:20px;padding:3px 8px;color:#fff;font-size:10px;cursor:pointer;outline:none}
+.lang-sel option{background:#1e2235;color:#fff}
+/* tabs */
+.tab-row{display:flex;gap:3px;padding:8px 12px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tab-row::-webkit-scrollbar{display:none}
+.tab-btn{flex:none;padding:6px 12px;border-radius:8px;border:.5px solid var(--cbr);background:transparent;color:var(--ts);font-size:11px;cursor:pointer;font-family:'Inter','Noto Sans TC',sans-serif;transition:all .2s;white-space:nowrap}
+.tab-btn.active{background:var(--ac);color:#1a1a2e;border-color:var(--ac);font-weight:600}
+/* cards */
+.section-box{margin:0 12px 10px;background:var(--cb);border:.5px solid var(--cbr);border-radius:14px;padding:12px;backdrop-filter:blur(6px)}
+.section-box h3{font-size:12px;color:var(--ts);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+/* stats */
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:8px 12px}
+.stat-card{background:var(--cb);border:.5px solid var(--cbr);border-radius:10px;padding:8px 6px;text-align:center;backdrop-filter:blur(6px)}
+.stat-card .val{font-size:14px;font-weight:700;color:var(--ac)}
+.stat-card .lbl{font-size:9px;color:var(--ts);margin-top:1px}
+/* budget bar */
+.budget-bar-wrap{background:rgba(255,255,255,0.08);border-radius:6px;height:8px;overflow:hidden;margin:6px 0}
+.budget-bar{height:100%;border-radius:6px;transition:width .5s}
+.budget-bar.ok{background:var(--ac2)}
+.budget-bar.warn{background:var(--ac)}
+.budget-bar.over{background:var(--ac3)}
+/* input */
+.inp{width:100%;background:rgba(255,255,255,0.1);border:.5px solid var(--cbr);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;font-family:'Inter','Noto Sans TC',sans-serif;outline:none;margin-bottom:6px}
+.inp::placeholder{color:rgba(255,255,255,0.35)}
+.inp:focus{border-color:var(--ac)}
+.inp-row{display:flex;gap:6px;margin-bottom:6px}
+.inp-row .inp{margin-bottom:0}
+select.inp option{background:#1a1a2e;color:#fff}
+.btn{flex:1;padding:9px;border-radius:9px;border:none;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;font-family:'Inter','Noto Sans TC',sans-serif}
+.btn:active{transform:scale(.96)}
+.btn-p{background:var(--ac);color:#1a1a2e}
+.btn-s{background:var(--btnbg);color:#fff;border:.5px solid var(--cbr)}
+.btn-d{background:rgba(239,71,111,0.25);color:var(--ac3);border:.5px solid rgba(239,71,111,0.35)}
+.btn-t{background:rgba(6,214,160,0.18);color:var(--ac2);border:.5px solid rgba(6,214,160,0.35);display:flex;align-items:center;justify-content:center;gap:5px}
+.btn-t.rec{background:rgba(239,71,111,0.25);color:var(--ac3);border-color:var(--ac3);animation:pls 1s infinite}
+@keyframes pls{0%,100%{opacity:1}50%{opacity:.6}}
+.btn-b{background:rgba(116,185,255,0.18);color:var(--ac4);border:.5px solid rgba(116,185,255,0.35)}
+.action-row{display:flex;gap:6px;margin-top:2px}
+/* records */
+.rec-item{background:var(--cb);border:.5px solid var(--cbr);border-radius:10px;padding:9px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;animation:si .3s ease}
+@keyframes si{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.cat-ico{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.rec-info{flex:1;min-width:0}
+.rec-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-meta{font-size:10px;color:var(--ts);margin-top:1px}
+.rec-amt{font-size:13px;font-weight:700;color:var(--ac);flex-shrink:0}
+.rec-del{background:none;border:none;color:rgba(255,255,255,0.25);font-size:14px;cursor:pointer;padding:0 2px}
+.rec-del:hover{color:var(--ac3)}
+.empty{text-align:center;padding:24px 16px;color:var(--ts);font-size:12px;white-space:pre-line}
+/* chart */
+.chart-wrap{position:relative;width:100%;height:180px}
+.legend-list{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ts)}
+.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+/* advice */
+.advice-card{background:rgba(6,214,160,0.1);border:.5px solid rgba(6,214,160,0.3);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--ac2);line-height:1.8;margin-bottom:8px;white-space:pre-line}
+.advice-card.warn-card{background:rgba(255,209,102,0.1);border-color:rgba(255,209,102,0.35);color:var(--ac)}
+.advice-card.danger-card{background:rgba(239,71,111,0.1);border-color:rgba(239,71,111,0.35);color:var(--ac3)}
+/* alert toast */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(239,71,111,0.92);color:#fff;padding:9px 18px;border-radius:20px;font-size:12px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;max-width:380px;text-align:center;backdrop-filter:blur(8px)}
+.toast.show{opacity:1}
+/* modal */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:#1e2235;border-radius:18px 18px 0 0;padding:18px;width:100%;max-width:430px;border:.5px solid var(--cbr);max-height:88vh;overflow-y:auto}
+.modal h3{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--ac)}
+.modal .cls{float:right;background:none;border:none;color:var(--ts);font-size:18px;cursor:pointer;margin-top:-2px}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid rgba(255,255,255,0.08)}
+.set-row:last-child{border-bottom:none}
+.set-lbl{font-size:12px;color:var(--tm)}
+.set-sub{font-size:10px;color:var(--ts);margin-top:2px}
+.sm-inp{width:80px;background:rgba(255,255,255,0.1);border:.5px solid var(--cbr);border-radius:7px;padding:5px 8px;color:#fff;font-size:12px;text-align:center;font-family:'Inter',sans-serif;outline:none}
+.bg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px}
+.bg-opt{width:100%;aspect-ratio:1;border-radius:9px;cursor:pointer;border:2px solid transparent;background-size:cover;background-position:center;transition:border-color .2s}
+.bg-opt.active{border-color:var(--ac)}
+.bg-opt.plus{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);border:1px dashed rgba(255,255,255,0.3);font-size:18px;color:var(--ts);cursor:pointer}
+/* pair */
+.pair-code{font-size:28px;font-weight:700;letter-spacing:6px;color:var(--ac);text-align:center;padding:12px 0;font-family:'Inter',monospace}
+.pair-status{display:flex;align-items:center;gap:6px;font-size:11px;padding:6px 10px;border-radius:8px;margin-bottom:8px}
+.pair-status.connected{background:rgba(6,214,160,0.15);border:.5px solid rgba(6,214,160,0.3);color:var(--ac2)}
+.pair-status.disconnected{background:rgba(255,255,255,0.06);border:.5px solid rgba(255,255,255,0.12);color:var(--ts)}
+/* cat limit row */
+.cat-limit-row{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:.5px solid rgba(255,255,255,0.06)}
+.cat-limit-row:last-child{border-bottom:none}
+.cat-limit-lbl{flex:1;font-size:12px}
+.cat-limit-inp{width:70px;background:rgba(255,255,255,0.08);border:.5px solid var(--cbr);border-radius:6px;padding:4px 6px;color:#fff;font-size:11px;text-align:center;font-family:'Inter',sans-serif;outline:none}
+/* voice */
+.voice-hint{font-size:10px;color:var(--ac2);text-align:center;margin:4px 0;min-height:14px}
+.ocr-prog{width:100%;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:5px;overflow:hidden;display:none}
+.ocr-bar{height:100%;background:var(--ac2);width:0%;transition:width .3s;border-radius:2px}
+.ocr-res{margin-top:6px;background:rgba(0,0,0,0.2);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--ts);line-height:1.5;display:none}
+.info-bub{background:rgba(6,214,160,0.12);border:.5px solid rgba(6,214,160,0.28);border-radius:10px;padding:9px 11px;margin-top:7px;font-size:11px;color:var(--ac2);line-height:1.7;display:none;white-space:pre-line}
+.info-bub.show{display:block;animation:si .3s ease}
+.notice{background:rgba(255,255,255,0.05);border:.5px solid rgba(255,255,255,0.1);border-radius:8px;padding:7px 10px;font-size:10px;color:var(--ts);margin-bottom:8px;line-height:1.5}
+.scan-lbl{display:flex;align-items:center;justify-content:center;gap:5px;flex:1;padding:9px;border-radius:9px;font-size:12px;font-weight:500;cursor:pointer;background:var(--btnbg);color:#fff;border:.5px solid var(--cbr)}
+.pb{padding-bottom:20px}
+/* crop handles */
+.crop-handle{position:absolute;width:18px;height:18px;background:var(--ac);border-radius:3px;touch-action:none;z-index:5}
+/* help tabs */
+.help-tab{padding:5px 11px;border-radius:16px;border:.5px solid var(--cbr);background:transparent;color:var(--ts);font-size:11px;cursor:pointer;font-family:'Inter','Noto Sans TC',sans-serif;transition:all .2s;white-space:nowrap}
+.help-tab.active{background:var(--ac);color:#1a1a2e;border-color:var(--ac);font-weight:600}
+.help-section{margin-bottom:10px}
+.help-section-title{font-size:12px;font-weight:600;color:var(--ac);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.help-item{display:flex;gap:8px;margin-bottom:6px;align-items:flex-start}
+.help-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.help-text strong{color:var(--tm);display:block;font-size:12px;margin-bottom:1px}
+.help-text span{font-size:11px;color:var(--ts);line-height:1.6}
+/* savings row */
+.sav-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.sav-row label{font-size:11px;color:var(--ts);white-space:nowrap;min-width:50px}
+/* shared badge */
+.shared-badge{display:inline-block;background:rgba(116,185,255,0.2);border:.5px solid rgba(116,185,255,0.4);border-radius:12px;padding:2px 8px;font-size:10px;color:var(--ac4);margin-left:6px}
+</style>
+</head>
+<body>
+
+<!-- PWA Install Banner -->
+<div id="install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:linear-gradient(135deg,#16213e,#0f3460);border-top:1px solid rgba(255,209,102,0.4);padding:12px 16px;z-index:300;align-items:center;gap:10px;backdrop-filter:blur(12px)">
+  <img src="icons/icon-72x72.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0">
+  <div style="flex:1;min-width:0">
+    <div style="font-size:13px;font-weight:600;color:#FFD166" id="install-title">安裝到主畫面</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.65)" id="install-sub">離線也能使用，用起來像原生App</div>
+  </div>
+  <button onclick="installApp()" style="background:#FFD166;color:#1a1a2e;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0" id="install-btn">安裝</button>
+  <button onclick="dismissBanner()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0">✕</button>
+</div>
+<div id="app-bg"></div>
+<div id="toast" class="toast"></div>
+<div id="app">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <h1 id="app-title">💳 智能發票管家</h1>
+  <div class="topbar-btns">
+    <select class="lang-sel" id="lang-sel" onchange="setLang(this.value)">
+      <option value="zh">中文</option>
+      <option value="en">English</option>
+      <option value="es">Español</option>
+    </select>
+    <button class="icon-btn" onclick="showModal('bg-modal')">🖼️</button>
+    <button class="icon-btn" onclick="showModal('help-modal')">❓</button>
+    <button class="icon-btn" onclick="showModal('set-modal')">⚙️</button>
+  </div>
+</div>
+
+<!-- TABS (scrollable) -->
+<div class="tab-row">
+  <button class="tab-btn active" id="tb0" onclick="gotoTab(0,this)">📊 <span id="t-overview">總覽</span></button>
+  <button class="tab-btn" id="tb1" onclick="gotoTab(1,this)">➕ <span id="t-add">新增</span></button>
+  <button class="tab-btn" id="tb2" onclick="gotoTab(2,this)">📋 <span id="t-list">明細</span></button>
+  <button class="tab-btn" id="tb3" onclick="gotoTab(3,this)">💰 <span id="t-budget">預算</span></button>
+  <button class="tab-btn" id="tb4" onclick="gotoTab(4,this)">👫 <span id="t-shared">共同</span></button>
+</div>
+
+<!-- ====== TAB 0: 總覽 ====== -->
+<div id="tab0" class="pb">
+  <div class="stats-row">
+    <div class="stat-card"><div class="val" id="s-total">$0</div><div class="lbl" id="sl-total">本期支出</div></div>
+    <div class="stat-card"><div class="val" id="s-remain">—</div><div class="lbl" id="sl-remain">可花餘額</div></div>
+    <div class="stat-card"><div class="val" id="s-count">0</div><div class="lbl" id="sl-count">筆記錄</div></div>
+  </div>
+  <div class="section-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:12px;color:var(--ts)" id="chart-title-txt">本期消費分佈</span>
+      <span id="period-lbl" style="font-size:10px;color:var(--ac)"></span>
+    </div>
+    <div class="chart-wrap"><canvas id="pie-chart" role="img" aria-label="spending pie chart">spending distribution</canvas></div>
+    <div class="legend-list" id="legend-list"></div>
+  </div>
+  <!-- AI Advice -->
+  <div class="section-box">
+    <h3 id="advice-title">💡 消費建議</h3>
+    <div id="advice-content"></div>
+  </div>
+</div>
+
+<!-- ====== TAB 1: 新增 ====== -->
+<div id="tab1" style="display:none" class="pb">
+  <div class="section-box">
+    <h3 id="add-title-h">🎙️ 新增消費</h3>
+    <div class="action-row" style="margin-bottom:8px">
+      <button class="btn btn-t" id="voice-btn" onclick="toggleVoice()">
+        <span id="vi">🎤</span><span id="vt">語音輸入</span>
+      </button>
+      <label class="scan-lbl">
+        <span>📷</span><span id="scan-txt">掃描發票</span>
+        <input type="file" accept="image/*" style="display:none" onchange="handleImage(event,false)">
+      </label>
+    </div>
+    <div class="notice" id="ocr-notice"><strong id="ocr-nt">📌 免費OCR</strong><br><span id="ocr-nb">使用Tesseract.js本機辨識，完全免費。首次需下載語言包(約10MB)。</span></div>
+    <div class="voice-hint" id="vh"></div>
+    <div class="info-bub" id="ib"></div>
+    <div class="ocr-res" id="ocr-res"></div>
+    <div class="ocr-prog" id="ocr-prog"><div class="ocr-bar" id="ocr-bar"></div></div>
+    <input class="inp" id="inp-name" type="text" placeholder="品項名稱">
+    <div class="inp-row">
+      <input class="inp" id="inp-amt" type="number" placeholder="金額" style="flex:0 0 100px;min-width:0">
+      <select class="inp" id="inp-cat" style="flex:1;min-width:0"></select>
+    </div>
+    <input class="inp" id="inp-date" type="date">
+    <div class="action-row">
+      <button class="btn btn-p" id="add-btn" onclick="addRecord(false)">✓ <span id="add-btn-txt">新增記錄</span></button>
+      <button class="btn btn-s" id="clr-btn" onclick="clearInputs()">↺</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== TAB 2: 明細 ====== -->
+<div id="tab2" style="display:none" class="pb">
+  <div style="margin:0 12px 8px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:12px;color:var(--ts)" id="list-title">消費明細</span>
+    <button class="btn btn-d" style="flex:none;padding:5px 10px;font-size:11px" onclick="clearAll(false)" id="clr-all-btn">清除全部</button>
+  </div>
+  <div id="records-container" style="margin:0 12px"></div>
+</div>
+
+<!-- ====== TAB 3: 預算 ====== -->
+<div id="tab3" style="display:none" class="pb">
+  <!-- 月預算 -->
+  <div class="section-box">
+    <h3 id="budget-title">💵 月預算設定</h3>
+    <div class="sav-row">
+      <label id="bl-budget">月預算上限</label>
+      <input class="inp" id="b-budget" type="number" placeholder="0" style="flex:1;margin:0" oninput="saveBudget()">
+    </div>
+    <div class="sav-row">
+      <label id="bl-savings">本月存入</label>
+      <input class="inp" id="b-savings" type="number" placeholder="0" style="flex:1;margin:0" oninput="saveBudget()">
+    </div>
+    <div style="margin-top:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+        <span style="color:var(--ts)" id="bl-spent">已花費</span>
+        <span id="b-spent-val" style="color:var(--ac)">$0</span>
+      </div>
+      <div class="budget-bar-wrap"><div class="budget-bar ok" id="b-bar" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px">
+        <span style="color:var(--ts)" id="bl-remain">可花餘額</span>
+        <span id="b-remain-val" style="font-weight:600;color:var(--ac2)">—</span>
+      </div>
+    </div>
+  </div>
+  <!-- 各類別上限 -->
+  <div class="section-box">
+    <h3 id="catlimit-title">🎯 各類別上限 &amp; 提示</h3>
+    <div style="font-size:10px;color:var(--ts);margin-bottom:8px" id="catlimit-sub">設定每個類別的花費上限及低消提示</div>
+    <div id="cat-limit-list"></div>
+  </div>
+</div>
+
+<!-- ====== TAB 4: 共同帳戶 ====== -->
+<div id="tab4" style="display:none" class="pb">
+  <!-- pair status -->
+  <div class="section-box">
+    <h3 id="pair-title">👫 配對設定</h3>
+    <div id="pair-status-div"></div>
+    <div id="pair-setup">
+      <div style="font-size:11px;color:var(--ts);margin-bottom:8px" id="pair-sub">與對方交換配對碼後，輸入對方的碼即可連結共同帳戶。</div>
+      <div style="font-size:11px;color:var(--ts);margin-bottom:4px" id="pair-mycode-lbl">我的配對碼：</div>
+      <div class="pair-code" id="my-code">——</div>
+      <div class="inp-row" style="margin-top:8px">
+        <input class="inp" id="partner-code-inp" type="text" maxlength="6" placeholder="輸入對方碼" style="flex:1;margin:0;text-align:center;letter-spacing:4px;text-transform:uppercase">
+        <button class="btn btn-b" style="flex:none;padding:8px 14px" onclick="doPair()" id="pair-btn">配對</button>
+      </div>
+    </div>
+    <div id="pair-info" style="display:none">
+      <div style="font-size:11px;color:var(--ts);margin-top:6px" id="paired-with-txt"></div>
+      <button class="btn btn-d" style="width:100%;margin-top:8px" onclick="unpair()" id="unpair-btn">解除配對</button>
+    </div>
+    <div class="notice" style="margin-top:8px" id="pair-notice-txt">💡 配對說明：配對碼讓同一裝置的兩個人共用共同帳本。跨裝置同步需要雲端服務（目前為單機版）。</div>
+  </div>
+  <!-- shared budget -->
+  <div class="section-box" id="shared-budget-box" style="display:none">
+    <h3 id="sh-budget-title">💵 共同月預算</h3>
+    <div class="sav-row">
+      <label id="sh-bl-budget">共同預算上限</label>
+      <input class="inp" id="sh-budget" type="number" placeholder="0" style="flex:1;margin:0" oninput="saveSharedBudget()">
+    </div>
+    <div class="sav-row">
+      <label id="sh-bl-savings">共同存入</label>
+      <input class="inp" id="sh-savings" type="number" placeholder="0" style="flex:1;margin:0" oninput="saveSharedBudget()">
+    </div>
+    <div style="margin-top:6px">
+      <div class="budget-bar-wrap"><div class="budget-bar ok" id="sh-bar" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px">
+        <span style="color:var(--ts)" id="sh-bl-remain">共同可花餘額</span>
+        <span id="sh-remain-val" style="font-weight:600;color:var(--ac2)">—</span>
+      </div>
+    </div>
+  </div>
+  <!-- shared add -->
+  <div class="section-box" id="shared-add-box" style="display:none">
+    <h3 id="sh-add-title">➕ 新增共同消費</h3>
+    <div class="action-row" style="margin-bottom:8px">
+      <button class="btn btn-t" id="sh-voice-btn" onclick="toggleVoice(true)">
+        <span id="sh-vi">🎤</span><span id="sh-vt">語音輸入</span>
+      </button>
+      <label class="scan-lbl">
+        <span>📷</span><span id="sh-scan-txt">掃描發票</span>
+        <input type="file" accept="image/*" style="display:none" onchange="handleImage(event,true)">
+      </label>
+    </div>
+    <div class="voice-hint" id="sh-vh"></div>
+    <div class="info-bub" id="sh-ib"></div>
+    <input class="inp" id="sh-inp-name" type="text" placeholder="品項名稱">
+    <div class="inp-row">
+      <input class="inp" id="sh-inp-amt" type="number" placeholder="金額" style="flex:0 0 100px;min-width:0">
+      <select class="inp" id="sh-inp-cat" style="flex:1;min-width:0"></select>
+    </div>
+    <input class="inp" id="sh-inp-date" type="date">
+    <div class="action-row">
+      <button class="btn btn-p" onclick="addRecord(true)" id="sh-add-btn">✓ <span id="sh-add-btn-txt">新增共同記錄</span></button>
+      <button class="btn btn-s" onclick="clearSharedInputs()">↺</button>
+    </div>
+  </div>
+  <!-- shared records -->
+  <div id="shared-records-box" style="display:none">
+    <div style="margin:0 12px 6px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:12px;color:var(--ts)" id="sh-list-title">共同消費明細</span>
+      <button class="btn btn-d" style="flex:none;padding:5px 10px;font-size:11px" onclick="clearAll(true)" id="sh-clr-all">清除</button>
+    </div>
+    <div id="sh-records-container" style="margin:0 12px"></div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<!-- MODAL: 說明 Help -->
+<div class="modal-ov" id="help-modal" style="display:none" onclick="closeMOv(event,'help-modal')">
+  <div class="modal" style="padding-bottom:24px">
+    <button class="cls" onclick="closeM('help-modal')">✕</button>
+    <h3 id="help-title">❓ 功能說明</h3>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px" id="help-tabs"></div>
+    <div id="help-content" style="font-size:12px;color:var(--ts);line-height:1.9"></div>
+  </div>
+</div>
+
+<!-- MODAL: 圖片裁切 Crop -->
+<div class="modal-ov" id="crop-modal" style="display:none">
+  <div class="modal" style="padding:16px">
+    <button class="cls" onclick="closeM('crop-modal')">✕</button>
+    <h3 id="crop-title">✂️ 裁切背景圖片</h3>
+    <div style="font-size:11px;color:var(--ts);margin-bottom:8px" id="crop-sub">拖曳方框選取要顯示的區域</div>
+    <div style="position:relative;width:100%;overflow:hidden;border-radius:10px;background:#000;touch-action:none" id="crop-container">
+      <canvas id="crop-canvas" style="width:100%;display:block;touch-action:none"></canvas>
+      <div id="crop-box" style="position:absolute;border:2px solid var(--ac);box-shadow:0 0 0 9999px rgba(0,0,0,0.55);cursor:move;touch-action:none"></div>
+      <!-- resize handles -->
+      <div class="crop-handle" id="ch-tl" style="top:0;left:0;cursor:nw-resize"></div>
+      <div class="crop-handle" id="ch-tr" style="top:0;right:0;cursor:ne-resize"></div>
+      <div class="crop-handle" id="ch-bl" style="bottom:0;left:0;cursor:sw-resize"></div>
+      <div class="crop-handle" id="ch-br" style="bottom:0;right:0;cursor:se-resize"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-s" onclick="closeM('crop-modal')" id="crop-cancel">取消</button>
+      <button class="btn btn-p" onclick="applyCrop()" id="crop-ok">✓ 套用為背景</button>
+    </div>
+  </div>
+</div>
+<div class="modal-ov" id="bg-modal" style="display:none" onclick="closeMOv(event,'bg-modal')">
+  <div class="modal">
+    <button class="cls" onclick="closeM('bg-modal')">✕</button>
+    <h3 id="bg-title">🖼️ 更換背景</h3>
+    <div class="bg-grid" id="bg-grid"></div>
+    <div style="margin-top:10px">
+      <label style="display:block;width:100%;padding:9px;border-radius:9px;background:rgba(69,183,209,0.12);border:1px dashed rgba(69,183,209,0.4);color:#45B7D1;font-size:12px;cursor:pointer;text-align:center">
+        <span id="bg-up-txt">📁 上傳自訂背景（可裁切）</span>
+        <input type="file" accept="image/*" style="display:none" onchange="openCrop(event)">
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 設定 (結算) -->
+<div class="modal-ov" id="set-modal" style="display:none" onclick="closeMOv(event,'set-modal')">
+  <div class="modal">
+    <button class="cls" onclick="closeM('set-modal')">✕</button>
+    <h3 id="set-title">⚙️ 設定</h3>
+    <div class="set-row">
+      <div><div class="set-lbl" id="set-period-lbl">每月結算日</div><div class="set-sub" id="set-period-sub">每個月幾號重新計算</div></div>
+      <input class="sm-inp" type="number" id="period-day" min="1" max="28" value="1" oninput="savePeriod()">
+    </div>
+    <div class="set-row">
+      <div><div class="set-lbl" id="set-range-lbl">當期週期</div><div class="set-sub" id="set-range-val"></div></div>
+    </div>
+    <div class="set-row">
+      <div><div class="set-lbl" id="set-store-lbl">💾 資料儲存</div><div class="set-sub" id="set-store-sub">資料存在本裝置瀏覽器，換裝置不同步。</div></div>
+    </div>
+    <div style="margin-top:12px"><button class="btn btn-p" onclick="closeM('set-modal')" id="set-ok-btn">確認</button></div>
+  </div>
+</div>
+
+<script>
+// ============ i18n ============
+const LANG={
+  zh:{
+    appTitle:'💳 智能發票管家',
+    t0:'總覽',t1:'新增',t2:'明細',t3:'預算',t4:'共同',
+    chartTitle:'本期消費分佈',sTotal:'本期支出',sRemain:'可花餘額',sCount:'筆記錄',
+    addTitle:'🎙️ 新增消費',voiceBtn:'語音輸入',scanBtn:'掃描發票',
+    ocrTitle:'📌 免費OCR',ocrBody:'使用Tesseract.js本機辨識，完全免費。首次需下載語言包(約10MB)。',
+    placeName:'品項名稱',placeAmt:'金額',catAuto:'自動分類',
+    addBtnTxt:'新增記錄',listTitle:'消費明細',clrAll:'清除全部',
+    adviceTitle:'💡 消費建議',
+    bgTitle:'🖼️ 更換背景',bgUp:'📁 上傳自訂背景（可裁切）',
+    setTitle:'⚙️ 設定',setPeriodLbl:'每月結算日',setPeriodSub:'每個月幾號重新計算',setRangeLbl:'當期週期',setStoreLbl:'💾 資料儲存',setStoreSub:'資料存在本裝置瀏覽器，換裝置不同步。',setOk:'確認',
+    budgetTitle:'💵 月預算設定',blBudget:'月預算上限',blSavings:'本月存入',blSpent:'已花費',blRemain:'可花餘額',
+    catLimitTitle:'🎯 各類別上限 & 提示',catLimitSub:'設定每個類別的花費上限及低消提示',
+    catLimitPh:'上限',catMinPh:'低消提示',
+    pairTitle:'👫 配對設定',pairSub:'與對方交換配對碼後，輸入對方的碼即可連結共同帳戶。',
+    pairMyLbl:'我的配對碼：',pairBtn:'配對',unpairBtn:'解除配對',
+    pairNotice:'💡 配對說明：配對碼讓同一裝置兩人共用帳本。跨裝置需雲端（目前單機版）。',
+    pairedWith:'已與對方配對',connected:'已連結',disconnected:'未配對',
+    shBudgetTitle:'💵 共同月預算',shBlBudget:'共同預算上限',shBlSavings:'共同存入',shBlRemain:'共同可花餘額',
+    shAddTitle:'➕ 新增共同消費',shAddBtn:'新增共同記錄',shListTitle:'共同消費明細',shClrAll:'清除',
+    voiceListening:'正在聆聽... 說出品項與金額',voiceStop:'停止錄音',
+    voiceNoSupport:'請使用Chrome或Safari以支援語音辨識',voiceMicDenied:'請允許麥克風權限',
+    ocrScanning:'🔍 辨識中...',ocrDone:'✅ 辨識完成',ocrFail:'⚠️ 未偵測到金額，請手動輸入',
+    addOk:'已新增',confirmClear:'確定清除？',noRecords:'📭 尚無記錄',emptyChart:'本期無消費記錄',
+    cats:{'食':['🍜','食'],'衣':['👗','衣'],'住':['🏠','住'],'行':['🚗','行'],'育':['📚','育'],'樂':['🎮','樂']},
+    adviceGood:'本期消費狀況良好，繼續保持！',
+    adviceOver:'⚠️ 已超出預算！請減少非必要支出。',
+    adviceWarn:'本月消費已達預算 {pct}%，剩餘 {days} 天，建議節制。',
+    catOverMsg:'⚠️ {cat} 類別已超出上限 ${limit}！目前花費 ${spent}',
+    catMinMsg:'ℹ️ {cat} 類別花費僅 ${spent}，低於提示金額 ${min}',
+    pairSuccess:'配對成功！',pairFail:'配對碼不符或格式錯誤（6碼英數）',pairSelf:'不能配對自己',
+  },
+  en:{
+    appTitle:'💳 Invoice Manager',
+    t0:'Overview',t1:'Add',t2:'Details',t3:'Budget',t4:'Shared',
+    chartTitle:'Spending Distribution',sTotal:'Period Total',sRemain:'Balance',sCount:'Records',
+    addTitle:'🎙️ Add Expense',voiceBtn:'Voice Input',scanBtn:'Scan Receipt',
+    ocrTitle:'📌 Free OCR',ocrBody:'Uses Tesseract.js on-device — 100% free. First use downloads a pack (~10MB).',
+    placeName:'Item name',placeAmt:'Amount',catAuto:'Auto classify',
+    addBtnTxt:'Add Record',listTitle:'Expense Details',clrAll:'Clear All',
+    adviceTitle:'💡 Spending Advice',
+    bgTitle:'🖼️ Change Background',bgUp:'📁 Upload & Crop Background',
+    setTitle:'⚙️ Settings',setPeriodLbl:'Billing day',setPeriodSub:'Day of month to reset totals',setRangeLbl:'Current period',setStoreLbl:'💾 Storage',setStoreSub:'Data saved locally. Not synced across devices.',setOk:'Confirm',
+    budgetTitle:'💵 Monthly Budget',blBudget:'Budget limit',blSavings:'Saved this month',blSpent:'Spent',blRemain:'Remaining balance',
+    catLimitTitle:'🎯 Category Limits & Alerts',catLimitSub:'Set spending caps and minimum alerts per category',
+    catLimitPh:'Limit',catMinPh:'Min alert',
+    pairTitle:'👫 Pair Setup',pairSub:'Share your code with your partner, then enter theirs to link a shared account.',
+    pairMyLbl:'My pair code:',pairBtn:'Pair',unpairBtn:'Unpair',
+    pairNotice:'💡 Pairing works on the same device. Cross-device sync requires a cloud backend (single-device for now).',
+    pairedWith:'Paired with partner',connected:'Connected',disconnected:'Not paired',
+    shBudgetTitle:'💵 Shared Budget',shBlBudget:'Shared budget limit',shBlSavings:'Shared savings',shBlRemain:'Shared balance',
+    shAddTitle:'➕ Add Shared Expense',shAddBtn:'Add Shared Record',shListTitle:'Shared Expense Details',shClrAll:'Clear',
+    voiceListening:'Listening... Say item and amount',voiceStop:'Stop Recording',
+    voiceNoSupport:'Use Chrome or Safari for speech recognition',voiceMicDenied:'Microphone permission denied',
+    ocrScanning:'🔍 Scanning...',ocrDone:'✅ Scan complete',ocrFail:'⚠️ No amount detected, enter manually',
+    addOk:'Added',confirmClear:'Delete all records?',noRecords:'📭 No records yet',emptyChart:'No records this period',
+    cats:{'食':['🍜','Food'],'衣':['👗','Clothing'],'住':['🏠','Housing'],'行':['🚗','Transport'],'育':['📚','Education'],'樂':['🎮','Entertainment']},
+    adviceGood:'Spending looks healthy this period. Keep it up!',
+    adviceOver:'⚠️ Over budget! Reduce unnecessary spending.',
+    adviceWarn:'You have used {pct}% of your budget with {days} days left. Consider cutting back.',
+    catOverMsg:'⚠️ {cat} exceeded limit of ${limit}! Current: ${spent}',
+    catMinMsg:'ℹ️ {cat} spending is only ${spent}, below the alert of ${min}',
+    pairSuccess:'Pairing successful!',pairFail:'Code mismatch or invalid format (6 alphanumeric)',pairSelf:"Can't pair with yourself",
+  },
+  es:{
+    appTitle:'💳 Gestor de Facturas',
+    t0:'Resumen',t1:'Agregar',t2:'Detalles',t3:'Presupuesto',t4:'Compartido',
+    chartTitle:'Distribución de Gastos',sTotal:'Total del Período',sRemain:'Saldo',sCount:'Registros',
+    addTitle:'🎙️ Agregar Gasto',voiceBtn:'Entrada de Voz',scanBtn:'Escanear',
+    ocrTitle:'📌 OCR Gratuito',ocrBody:'Usa Tesseract.js local — 100% gratis. Primer uso descarga paquete (~10MB).',
+    placeName:'Nombre del artículo',placeAmt:'Monto',catAuto:'Clasificar auto',
+    addBtnTxt:'Agregar Registro',listTitle:'Detalles de Gastos',clrAll:'Limpiar Todo',
+    adviceTitle:'💡 Consejos de Gasto',
+    bgTitle:'🖼️ Cambiar Fondo',bgUp:'📁 Subir y Recortar Fondo',
+    setTitle:'⚙️ Configuración',setPeriodLbl:'Día de corte',setPeriodSub:'Día del mes para reiniciar',setRangeLbl:'Período actual',setStoreLbl:'💾 Almacenamiento',setStoreSub:'Datos guardados localmente.',setOk:'Confirmar',
+    budgetTitle:'💵 Presupuesto Mensual',blBudget:'Límite de presupuesto',blSavings:'Ahorrado este mes',blSpent:'Gastado',blRemain:'Saldo disponible',
+    catLimitTitle:'🎯 Límites por Categoría',catLimitSub:'Establece límites y alertas mínimas por categoría',
+    catLimitPh:'Límite',catMinPh:'Alerta min',
+    pairTitle:'👫 Configurar Pareja',pairSub:'Comparte tu código con tu pareja e ingresa el suyo para vincular una cuenta compartida.',
+    pairMyLbl:'Mi código:',pairBtn:'Vincular',unpairBtn:'Desvincular',
+    pairNotice:'💡 El emparejamiento funciona en el mismo dispositivo. La sincronización entre dispositivos requiere backend.',
+    pairedWith:'Vinculado con pareja',connected:'Conectado',disconnected:'Sin vincular',
+    shBudgetTitle:'💵 Presupuesto Compartido',shBlBudget:'Límite compartido',shBlSavings:'Ahorro compartido',shBlRemain:'Saldo compartido',
+    shAddTitle:'➕ Agregar Gasto Compartido',shAddBtn:'Agregar Compartido',shListTitle:'Detalles Compartidos',shClrAll:'Limpiar',
+    voiceListening:'Escuchando... Di artículo y monto',voiceStop:'Detener',
+    voiceNoSupport:'Usa Chrome o Safari para reconocimiento de voz',voiceMicDenied:'Permiso de micrófono denegado',
+    ocrScanning:'🔍 Escaneando...',ocrDone:'✅ Listo',ocrFail:'⚠️ Sin monto detectado, ingrese manualmente',
+    addOk:'Agregado',confirmClear:'¿Eliminar todos los registros?',noRecords:'📭 Sin registros',emptyChart:'Sin registros este período',
+    cats:{'食':['🍜','Comida'],'衣':['👗','Ropa'],'住':['🏠','Vivienda'],'行':['🚗','Transporte'],'育':['📚','Educación'],'樂':['🎮','Entretenimiento']},
+    adviceGood:'¡El gasto se ve saludable este período! ¡Sigue así!',
+    adviceOver:'⚠️ ¡Presupuesto excedido! Reduce gastos innecesarios.',
+    adviceWarn:'Has usado el {pct}% del presupuesto con {days} días restantes. Considera reducir.',
+    catOverMsg:'⚠️ {cat} superó el límite de ${limit}! Actual: ${spent}',
+    catMinMsg:'ℹ️ {cat} solo ${spent}, por debajo de la alerta de ${min}',
+    pairSuccess:'¡Vinculación exitosa!',pairFail:'Código inválido (6 caracteres alfanuméricos)',pairSelf:'No puedes vincularte contigo mismo',
+  }
+};
+
+const CATS_DEF={
+  '食':{color:'#FF6B6B',kw:['餐','食','飯','麵','湯','咖啡','茶','早','午','晚','便當','小吃','飲','pizza','burger','cafe','restaurant','breakfast','lunch','dinner','snack','drink','food','comida','almuerzo','desayuno','cena','café','bebida']},
+  '衣':{color:'#4ECDC4',kw:['衣','服','鞋','帽','包','褲','裙','外套','飾','戒','clothing','shirt','pants','dress','shoes','bag','fashion','ropa','zapatos','camisa','vestido']},
+  '住':{color:'#45B7D1',kw:['房租','水電','瓦斯','網路','電費','水費','租','修','家具','冰箱','rent','utility','electricity','water','furniture','repair','alquiler','agua','luz','gas','muebles']},
+  '行':{color:'#96CEB4',kw:['車','捷運','公車','計程車','uber','油','停車','高鐵','火車','飛機','taxi','bus','mrt','train','flight','parking','transport','transporte','gasolina','metro']},
+  '育':{color:'#FFEAA7',kw:['書','課','學','教','文具','補習','書店','雜誌','book','course','school','study','tuition','education','magazine','libro','curso','escuela']},
+  '樂':{color:'#DDA0DD',kw:['電影','遊戲','ktv','旅遊','娛樂','酒吧','演唱會','音樂','健身','spotify','netflix','game','movie','travel','entertainment','gym','sport','concert','bar','película','juego','viaje','entretenimiento']}
+};
+
+// State
+let currentLang=localStorage.getItem('inv_lang')||'zh';
+let records=JSON.parse(localStorage.getItem('inv_recs')||'[]');
+let sharedRecords=JSON.parse(localStorage.getItem('inv_sh_recs')||'[]');
+let periodDay=parseInt(localStorage.getItem('inv_period')||'1');
+let currentBg=localStorage.getItem('inv_bg')||'g1';
+let customBg=localStorage.getItem('inv_custom_bg')||null;
+let budget={limit:parseFloat(localStorage.getItem('inv_budget')||'0'),savings:parseFloat(localStorage.getItem('inv_savings')||'0')};
+let sharedBudget={limit:parseFloat(localStorage.getItem('inv_sh_budget')||'0'),savings:parseFloat(localStorage.getItem('inv_sh_savings')||'0')};
+let catLimits=JSON.parse(localStorage.getItem('inv_cat_limits')||'{}');
+let catMins=JSON.parse(localStorage.getItem('inv_cat_mins')||'{}');
+let myCode=localStorage.getItem('inv_my_code')||genCode();
+let partnerCode=localStorage.getItem('inv_partner_code')||'';
+let pieChart=null,shPieChart=null;
+let isRecording=false,shIsRecording=false,recognition=null,shRecognition=null;
+
+function genCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r=''; for(let i=0;i<6;i++) r+=c[Math.floor(Math.random()*c.length)]; return r; }
+localStorage.setItem('inv_my_code',myCode);
+
+// i18n helpers
+function t(k){ return LANG[currentLang][k]||LANG['zh'][k]||k; }
+function ce(cat){ return (t('cats')[cat]||['?','?'])[0]; }
+function cl(cat){ return (t('cats')[cat]||['?',cat])[1]; }
+function autoClassify(name){ const l=name.toLowerCase(); for(const [c,d] of Object.entries(CATS_DEF)){ if(d.kw.some(k=>l.includes(k))) return c; } return '食'; }
+
+function applyI18n(){
+  document.getElementById('app-title').textContent=t('appTitle');
+  document.getElementById('t-overview').textContent=t('t0');
+  document.getElementById('t-add').textContent=t('t1');
+  document.getElementById('t-list').textContent=t('t2');
+  document.getElementById('t-budget').textContent=t('t3');
+  document.getElementById('t-shared').textContent=t('t4');
+  document.getElementById('chart-title-txt').textContent=t('chartTitle');
+  document.getElementById('sl-total').textContent=t('sTotal');
+  document.getElementById('sl-remain').textContent=t('sRemain');
+  document.getElementById('sl-count').textContent=t('sCount');
+  document.getElementById('add-title-h').textContent=t('addTitle');
+  document.getElementById('vt').textContent=isRecording?t('voiceStop'):t('voiceBtn');
+  document.getElementById('scan-txt').textContent=t('scanBtn');
+  document.getElementById('ocr-nt').textContent=t('ocrTitle');
+  document.getElementById('ocr-nb').textContent=t('ocrBody');
+  document.getElementById('inp-name').placeholder=t('placeName');
+  document.getElementById('inp-amt').placeholder=t('placeAmt');
+  document.getElementById('add-btn-txt').textContent=t('addBtnTxt');
+  document.getElementById('list-title').textContent=t('listTitle');
+  document.getElementById('clr-all-btn').textContent=t('clrAll');
+  document.getElementById('advice-title').textContent=t('adviceTitle');
+  document.getElementById('bg-title').textContent=t('bgTitle');
+  document.getElementById('bg-up-txt').textContent=t('bgUp');
+  document.getElementById('set-title').textContent=t('setTitle');
+  document.getElementById('set-period-lbl').textContent=t('setPeriodLbl');
+  document.getElementById('set-period-sub').textContent=t('setPeriodSub');
+  document.getElementById('set-range-lbl').textContent=t('setRangeLbl');
+  document.getElementById('set-store-lbl').textContent=t('setStoreLbl');
+  document.getElementById('set-store-sub').textContent=t('setStoreSub');
+  document.getElementById('set-ok-btn').textContent=t('setOk');
+  document.getElementById('budget-title').textContent=t('budgetTitle');
+  document.getElementById('bl-budget').textContent=t('blBudget');
+  document.getElementById('bl-savings').textContent=t('blSavings');
+  document.getElementById('bl-spent').textContent=t('blSpent');
+  document.getElementById('bl-remain').textContent=t('blRemain');
+  document.getElementById('catlimit-title').textContent=t('catLimitTitle');
+  document.getElementById('catlimit-sub').textContent=t('catLimitSub');
+  document.getElementById('pair-title').textContent=t('pairTitle');
+  document.getElementById('pair-sub').textContent=t('pairSub');
+  document.getElementById('pair-mycode-lbl').textContent=t('pairMyLbl');
+  document.getElementById('pair-btn').textContent=t('pairBtn');
+  document.getElementById('pair-notice-txt').textContent=t('pairNotice');
+  document.getElementById('sh-budget-title').textContent=t('shBudgetTitle');
+  document.getElementById('sh-bl-budget').textContent=t('shBlBudget');
+  document.getElementById('sh-bl-savings').textContent=t('shBlSavings');
+  document.getElementById('sh-bl-remain').textContent=t('shBlRemain');
+  document.getElementById('sh-add-title').textContent=t('shAddTitle');
+  document.getElementById('sh-vt').textContent=shIsRecording?t('voiceStop'):t('voiceBtn');
+  document.getElementById('sh-scan-txt').textContent=t('scanBtn');
+  document.getElementById('sh-inp-name').placeholder=t('placeName');
+  document.getElementById('sh-inp-amt').placeholder=t('placeAmt');
+  document.getElementById('sh-add-btn-txt').textContent=t('shAddBtn');
+  document.getElementById('sh-list-title').textContent=t('shListTitle');
+  document.getElementById('sh-clr-all').textContent=t('shClrAll');
+
+  // Install banner i18n
+  const iTitle = document.getElementById('install-title');
+  const iSub = document.getElementById('install-sub');
+  const iBtn = document.getElementById('install-btn');
+  if(iTitle) iTitle.textContent = currentLang==='en' ? 'Add to Home Screen' : currentLang==='es' ? 'Agregar a Inicio' : '安裝到主畫面';
+  if(iSub) iSub.textContent = currentLang==='en' ? 'Works offline, feels like a native app' : currentLang==='es' ? 'Funciona sin conexión, como app nativa' : '離線也能使用，用起來像原生App';
+  if(iBtn) iBtn.textContent = currentLang==='en' ? 'Install' : currentLang==='es' ? 'Instalar' : '安裝';
+  buildCatSelect('inp-cat'); buildCatSelect('sh-inp-cat');
+  buildCatLimitList(); updatePairStatus();
+  updatePeriodLabel(); renderRecords(false); renderRecords(true);
+  updateChart(false); updateBudgetBar(false); updateBudgetBar(true); updateAdvice();
+}
+function setLang(l){ currentLang=l; localStorage.setItem('inv_lang',l); document.getElementById('lang-sel').value=l; applyI18n(); }
+
+function buildCatSelect(id){
+  const sel=document.getElementById(id), prev=sel.value;
+  sel.innerHTML=`<option value="">${t('catAuto')}</option>`;
+  Object.keys(CATS_DEF).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=ce(k)+' '+cl(k); sel.appendChild(o); });
+  sel.value=prev;
+}
+
+// Period
+function getPeriodRange(){
+  const now=new Date(),day=periodDay; let s,e;
+  if(now.getDate()>=day){ s=new Date(now.getFullYear(),now.getMonth(),day); e=new Date(now.getFullYear(),now.getMonth()+1,day-1); }
+  else { s=new Date(now.getFullYear(),now.getMonth()-1,day); e=new Date(now.getFullYear(),now.getMonth(),day-1); }
+  return {start:s,end:e};
+}
+function isInPeriod(ds){ const {start,end}=getPeriodRange(),d=new Date(ds); return d>=start&&d<=end; }
+function getCurRecs(shared=false){ return (shared?sharedRecords:records).filter(r=>isInPeriod(r.date)); }
+function savePeriod(){ const v=parseInt(document.getElementById('period-day').value); if(v>=1&&v<=28){periodDay=v;localStorage.setItem('inv_period',v);updateAll();} }
+function updatePeriodLabel(){
+  const {start,end}=getPeriodRange();
+  const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  document.getElementById('period-lbl').textContent=`${fmt(start)}~${fmt(end)}`;
+  const loc={zh:'zh-TW',en:'en-US',es:'es-ES'}[currentLang]||'zh-TW';
+  document.getElementById('set-range-val').textContent=`${start.toLocaleDateString(loc)} → ${end.toLocaleDateString(loc)}`;
+}
+
+// Budget
+function saveBudget(){
+  budget.limit=parseFloat(document.getElementById('b-budget').value)||0;
+  budget.savings=parseFloat(document.getElementById('b-savings').value)||0;
+  localStorage.setItem('inv_budget',budget.limit); localStorage.setItem('inv_savings',budget.savings);
+  updateBudgetBar(false); updateStats(); updateAdvice();
+}
+function saveSharedBudget(){
+  sharedBudget.limit=parseFloat(document.getElementById('sh-budget').value)||0;
+  sharedBudget.savings=parseFloat(document.getElementById('sh-savings').value)||0;
+  localStorage.setItem('inv_sh_budget',sharedBudget.limit); localStorage.setItem('inv_sh_savings',sharedBudget.savings);
+  updateBudgetBar(true);
+}
+function updateBudgetBar(shared){
+  const bud=shared?sharedBudget:budget;
+  const spent=getCurRecs(shared).reduce((s,r)=>s+r.amount,0);
+  const total=bud.limit+bud.savings;
+  const remain=total-spent;
+  if(!shared){
+    document.getElementById('b-spent-val').textContent='$'+spent.toLocaleString();
+    document.getElementById('b-remain-val').textContent=total>0?'$'+Math.max(0,remain).toLocaleString():'—';
+    const pct=total>0?Math.min(100,(spent/total)*100):0;
+    const bar=document.getElementById('b-bar');
+    bar.style.width=pct+'%';
+    bar.className='budget-bar '+(pct>=100?'over':pct>=80?'warn':'ok');
+  } else {
+    document.getElementById('sh-remain-val').textContent=total>0?'$'+Math.max(0,remain).toLocaleString():'—';
+    const pct=total>0?Math.min(100,(spent/total)*100):0;
+    const bar=document.getElementById('sh-bar');
+    bar.style.width=pct+'%';
+    bar.className='budget-bar '+(pct>=100?'over':pct>=80?'warn':'ok');
+  }
+}
+
+// Cat limits
+function buildCatLimitList(){
+  const container=document.getElementById('cat-limit-list');
+  container.innerHTML=Object.keys(CATS_DEF).map(cat=>`
+    <div class="cat-limit-row">
+      <span class="cat-limit-lbl">${ce(cat)} ${cl(cat)}</span>
+      <input class="cat-limit-inp" type="number" placeholder="${t('catLimitPh')}" id="cl-${cat}" value="${catLimits[cat]||''}" oninput="saveCatLimit('${cat}')">
+      <input class="cat-limit-inp" type="number" placeholder="${t('catMinPh')}" id="cm-${cat}" value="${catMins[cat]||''}" oninput="saveCatMin('${cat}')">
+    </div>`).join('');
+}
+function saveCatLimit(cat){ const v=parseFloat(document.getElementById(`cl-${cat}`).value)||0; if(v>0)catLimits[cat]=v; else delete catLimits[cat]; localStorage.setItem('inv_cat_limits',JSON.stringify(catLimits)); }
+function saveCatMin(cat){ const v=parseFloat(document.getElementById(`cm-${cat}`).value)||0; if(v>0)catMins[cat]=v; else delete catMins[cat]; localStorage.setItem('inv_cat_mins',JSON.stringify(catMins)); }
+
+function checkCatAlerts(shared=false){
+  const cur=getCurRecs(shared);
+  const cats={};
+  cur.forEach(r=>{cats[r.cat]=(cats[r.cat]||0)+r.amount;});
+  if(shared) return;
+  for(const [cat,limit] of Object.entries(catLimits)){
+    const spent=cats[cat]||0;
+    if(spent>limit){ showToast(t('catOverMsg').replace('{cat}',ce(cat)+cl(cat)).replace('{limit}',limit.toLocaleString()).replace('{spent}',spent.toLocaleString())); }
+  }
+  for(const [cat,min] of Object.entries(catMins)){
+    const spent=cats[cat]||0;
+    if(spent>0&&spent<min){ showToast(t('catMinMsg').replace('{cat}',ce(cat)+cl(cat)).replace('{spent}',spent.toLocaleString()).replace('{min}',min.toLocaleString())); }
+  }
+}
+
+// Stats
+function updateStats(){
+  const cur=getCurRecs(false),total=cur.reduce((s,r)=>s+r.amount,0);
+  document.getElementById('s-total').textContent='$'+total.toLocaleString();
+  document.getElementById('s-count').textContent=cur.length;
+  const bTotal=budget.limit+budget.savings;
+  document.getElementById('s-remain').textContent=bTotal>0?'$'+Math.max(0,bTotal-total).toLocaleString():'—';
+}
+
+// Chart
+function updateChart(shared=false){
+  const cur=getCurRecs(shared);
+  const cats={},total=cur.reduce((s,r)=>s+r.amount,0);
+  cur.forEach(r=>{cats[r.cat]=(cats[r.cat]||0)+r.amount;});
+  const labels=[],data=[],colors=[],entries=[];
+  for(const [cat,amt] of Object.entries(cats)){
+    labels.push(ce(cat)+cl(cat)); data.push(amt); colors.push(CATS_DEF[cat]?.color||'#888');
+    entries.push({cat,amt,color:CATS_DEF[cat]?.color||'#888'});
+  }
+  if(!shared){
+    if(pieChart) pieChart.destroy();
+    if(!data.length){document.getElementById('legend-list').innerHTML=`<div style="font-size:11px;color:rgba(255,255,255,0.35);padding:16px 0">${t('emptyChart')}</div>`;return;}
+    pieChart=new Chart(document.getElementById('pie-chart'),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderColor:'rgba(0,0,0,0.3)',borderWidth:2,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const p=total>0?((ctx.raw/total)*100).toFixed(1):0;return ` $${ctx.raw.toLocaleString()} (${p}%)`;}}},cutout:'60%'}}});
+    document.getElementById('legend-list').innerHTML=entries.map(e=>{const p=total>0?((e.amt/total)*100).toFixed(1):0;return `<div class="leg-item"><div class="leg-dot" style="background:${e.color}"></div>${ce(e.cat)}${cl(e.cat)} $${e.amt.toLocaleString()} <span style="color:var(--ac);font-weight:600">${p}%</span></div>`;}).join('');
+  }
+}
+
+// Advice
+function updateAdvice(){
+  const cur=getCurRecs(false),total=cur.reduce((s,r)=>s+r.amount,0);
+  const bTotal=budget.limit+budget.savings;
+  const cats={};
+  cur.forEach(r=>{cats[r.cat]=(cats[r.cat]||0)+r.amount;});
+  const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const {start,end}=getPeriodRange();
+  const now=new Date();
+  const totalDays=Math.max(1,Math.round((end-start)/(1000*60*60*24)));
+  const daysPassed=Math.max(1,Math.round((now-start)/(1000*60*60*24)));
+  const daysLeft=Math.max(0,totalDays-daysPassed);
+  const lines=[];
+  let cardClass='advice-card';
+  if(bTotal>0){
+    const pct=Math.round((total/bTotal)*100);
+    const expected=Math.round((daysPassed/totalDays)*100);
+    if(pct>=100){ lines.push(t('adviceOver')); cardClass='advice-card danger-card'; }
+    else if(pct>expected+20){ lines.push(t('adviceWarn').replace('{pct}',pct).replace('{days}',daysLeft)); cardClass='advice-card warn-card'; }
+    else { lines.push(t('adviceGood')); }
+    lines.push('');
+    lines.push(`📊 ${t('blSpent')}: $${total.toLocaleString()} / $${bTotal.toLocaleString()} (${pct}%)`);
+  } else {
+    lines.push(t('adviceGood'));
+  }
+  if(sorted.length>0) lines.push(`🔝 ${t('sTotal').replace('期支出','').replace('Period ','').replace('del Período','')}: ${ce(sorted[0][0])}${cl(sorted[0][0])} $${sorted[0][1].toLocaleString()}`);
+  const perDay=daysPassed>0?Math.round(total/daysPassed):0;
+  if(perDay>0) lines.push(`📅 ${currentLang==='zh'?'日均花費':currentLang==='en'?'Daily avg':'Gasto diario'}: $${perDay.toLocaleString()}`);
+  if(daysLeft>0&&total>0&&bTotal<=0){
+    const proj=Math.round((total/daysPassed)*(daysPassed+daysLeft));
+    lines.push(`🔮 ${currentLang==='zh'?'預估本期總計':currentLang==='en'?'Projected total':'Proyección'}: $${proj.toLocaleString()}`);
+  }
+  const el=document.getElementById('advice-content');
+  el.innerHTML=`<div class="${cardClass}">${lines.join('\n')}</div>`;
+}
+
+// Records render
+function renderRecords(shared=false){
+  const container=document.getElementById(shared?'sh-records-container':'records-container');
+  const recs=shared?sharedRecords:records;
+  if(!recs.length){container.innerHTML=`<div class="empty">${t('noRecords')}</div>`;return;}
+  container.innerHTML=recs.slice().reverse().map((r,ri)=>{
+    const color=CATS_DEF[r.cat]?.color||'#888',idx=recs.length-1-ri;
+    const badge=r.shared?`<span class="shared-badge">共同</span>`:'';
+    return `<div class="rec-item">
+      <div class="cat-ico" style="background:${color}22;border:.5px solid ${color}44">${ce(r.cat)}</div>
+      <div class="rec-info"><div class="rec-name">${r.name}${badge}</div><div class="rec-meta">${cl(r.cat)} · ${r.date}</div></div>
+      <div class="rec-amt">$${r.amount.toLocaleString()}</div>
+      <button class="rec-del" onclick="deleteRecord(${idx},${shared})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// Add / Delete
+function addRecord(shared=false){
+  const pfx=shared?'sh-':'';
+  const name=document.getElementById(pfx+'inp-name').value.trim();
+  const amount=parseFloat(document.getElementById(pfx+'inp-amt').value);
+  let cat=document.getElementById(pfx+'inp-cat').value;
+  let date=document.getElementById(pfx+'inp-date').value;
+  if(!name||!amount||amount<=0){showToast(t('placeName'));return;}
+  if(!cat) cat=autoClassify(name);
+  if(!date) date=new Date().toISOString().split('T')[0];
+  const entry={name,amount,cat,date,shared};
+  if(shared){ sharedRecords.push(entry); localStorage.setItem('inv_sh_recs',JSON.stringify(sharedRecords)); }
+  else { records.push(entry); localStorage.setItem('inv_recs',JSON.stringify(records)); }
+  shared?clearSharedInputs():clearInputs();
+  updateAll();
+  showBubble(pfx?'sh-ib':'ib',`✅ ${t('addOk')}: ${ce(cat)}${name} $${amount.toLocaleString()} (${cl(cat)})`);
+  checkCatAlerts(shared);
+}
+function deleteRecord(i,shared=false){
+  if(shared){sharedRecords.splice(i,1);localStorage.setItem('inv_sh_recs',JSON.stringify(sharedRecords));}
+  else{records.splice(i,1);localStorage.setItem('inv_recs',JSON.stringify(records));}
+  updateAll();
+}
+function clearAll(shared=false){
+  if(!confirm(t('confirmClear'))) return;
+  if(shared){sharedRecords=[];localStorage.setItem('inv_sh_recs','[]');}
+  else{records=[];localStorage.setItem('inv_recs','[]');}
+  updateAll();
+}
+function clearInputs(){
+  ['inp-name','inp-amt','inp-cat'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('inp-date').value=today();
+  document.getElementById('ib').className='info-bub';
+  document.getElementById('ocr-res').style.display='none';
+  document.getElementById('ocr-prog').style.display='none';
+}
+function clearSharedInputs(){
+  ['sh-inp-name','sh-inp-amt','sh-inp-cat'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('sh-inp-date').value=today();
+  document.getElementById('sh-ib').className='info-bub';
+}
+function today(){ return new Date().toISOString().split('T')[0]; }
+function updateAll(){ updateStats(); updateChart(false); updateBudgetBar(false); updateBudgetBar(true); renderRecords(false); renderRecords(true); updateAdvice(); updatePeriodLabel(); }
+
+// Pair
+function doPair(){
+  const code=document.getElementById('partner-code-inp').value.trim().toUpperCase();
+  if(!/^[A-Z0-9]{6}$/.test(code)){showToast(t('pairFail'));return;}
+  if(code===myCode){showToast(t('pairSelf'));return;}
+  partnerCode=code;
+  localStorage.setItem('inv_partner_code',code);
+  showToast(t('pairSuccess'));
+  updatePairStatus();
+}
+function unpair(){
+  partnerCode='';
+  localStorage.setItem('inv_partner_code','');
+  updatePairStatus();
+}
+function updatePairStatus(){
+  const paired=!!partnerCode;
+  document.getElementById('pair-status-div').innerHTML=`<div class="pair-status ${paired?'connected':'disconnected'}">${paired?'🟢':'⚪'} ${t(paired?'connected':'disconnected')}</div>`;
+  document.getElementById('my-code').textContent=myCode;
+  document.getElementById('pair-info').style.display=paired?'block':'none';
+  if(paired){ document.getElementById('paired-with-txt').textContent=`${t('pairedWith')}: ${partnerCode}`; }
+  const show=paired;
+  document.getElementById('shared-budget-box').style.display=show?'block':'none';
+  document.getElementById('shared-add-box').style.display=show?'block':'none';
+  document.getElementById('shared-records-box').style.display=show?'block':'none';
+}
+
+// Voice
+function toggleVoice(shared=false){
+  const isRec=shared?shIsRecording:isRecording;
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){showBubble(shared?'sh-ib':'ib',t('voiceNoSupport'));return;}
+  isRec?stopVoice(shared):startVoice(shared);
+}
+function startVoice(shared=false){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const rec=new SR();
+  rec.lang={zh:'zh-TW',en:'en-US',es:'es-ES'}[currentLang]||'zh-TW';
+  rec.continuous=false; rec.interimResults=true;
+  if(shared){shIsRecording=true;shRecognition=rec;}
+  else{isRecording=true;recognition=rec;}
+  const btnId=shared?'sh-voice-btn':'voice-btn';
+  const viId=shared?'sh-vi':'vi';
+  const vtId=shared?'sh-vt':'vt';
+  const vhId=shared?'sh-vh':'vh';
+  document.getElementById(btnId).className='btn btn-t rec';
+  document.getElementById(viId).textContent='⏹️';
+  document.getElementById(vtId).textContent=t('voiceStop');
+  document.getElementById(vhId).textContent=t('voiceListening');
+  rec.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) parseVoiceResult(e.results[i][0].transcript,shared);
+      else interim+=e.results[i][0].transcript;
+    }
+    if(interim) document.getElementById(vhId).textContent='🎤 '+interim;
+  };
+  rec.onerror=ev=>{ showBubble(shared?'sh-ib':'ib',ev.error==='not-allowed'?t('voiceMicDenied'):t('voiceNoSupport')); stopVoice(shared); };
+  rec.onend=()=>stopVoice(shared);
+  rec.start();
+}
+function stopVoice(shared=false){
+  const rec=shared?shRecognition:recognition;
+  if(rec) rec.stop();
+  if(shared)shIsRecording=false; else isRecording=false;
+  const btnId=shared?'sh-voice-btn':'voice-btn';
+  const viId=shared?'sh-vi':'vi';
+  const vtId=shared?'sh-vt':'vt';
+  const vhId=shared?'sh-vh':'vh';
+  document.getElementById(btnId).className='btn btn-t';
+  document.getElementById(viId).textContent='🎤';
+  document.getElementById(vtId).textContent=t('voiceBtn');
+  document.getElementById(vhId).textContent='';
+}
+function parseVoiceResult(text,shared=false){
+  const pfx=shared?'sh-':'';
+  document.getElementById(shared?'sh-vh':'vh').textContent='';
+  const nm={'零':0,'一':1,'二':2,'兩':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'百':100,'千':1000,'萬':10000};
+  let amount=0;
+  const m=text.match(/(\d[\d,]*\.?\d*)/);
+  if(m) amount=parseFloat(m[1].replace(/,/g,''));
+  else{const cm=text.match(/([零一二兩三四五六七八九十百千萬]+)/);if(cm){let s=cm[1],v=0,tmp=0;for(const c of s){const n=nm[c];if(n>=10){tmp=tmp?tmp*n:n;v+=tmp;tmp=0;}else tmp=n;}amount=v+tmp;}}
+  let name=text.replace(/(\d[\d,.]*)/g,'').replace(/[元円圓塊錢dollars?pesos?dólares?]/gi,'').replace(/[零一二兩三四五六七八九十百千萬]+/g,'').trim()||text;
+  if(amount>0) document.getElementById(pfx+'inp-amt').value=amount;
+  if(name) document.getElementById(pfx+'inp-name').value=name;
+  const sc=autoClassify(text); document.getElementById(pfx+'inp-cat').value=sc;
+  showBubble(pfx+'ib',`🎙️ "${text}"\n📝 ${name||'—'}\n💰 ${amount>0?'$'+amount:'—'}\n🏷️ ${ce(sc)}${cl(sc)}`);
+}
+
+// OCR
+let tessLoaded=false;
+function loadTesseract(cb){
+  if(tessLoaded||window.Tesseract){tessLoaded=true;cb();return;}
+  const s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+  s.onload=()=>{tessLoaded=true;cb();}; s.onerror=()=>{showToast('OCR load failed');};
+  document.head.appendChild(s);
+}
+function handleImage(e,shared=false){
+  const file=e.target.files[0]; if(!file) return; e.target.value='';
+  const rEl=document.getElementById('ocr-res'),pEl=document.getElementById('ocr-prog'),bEl=document.getElementById('ocr-bar');
+  rEl.style.display='block'; rEl.textContent=t('ocrScanning');
+  pEl.style.display='block'; bEl.style.width='0%';
+  loadTesseract(async()=>{
+    try{
+      const ocrLang=currentLang==='zh'?'chi_sim+eng':currentLang==='es'?'spa+eng':'eng';
+      const result=await Tesseract.recognize(file,ocrLang,{logger:m=>{if(m.status==='recognizing text')bEl.style.width=Math.round((m.progress||0)*100)+'%';}});
+      pEl.style.display='none';
+      const raw=result.data.text;
+      const nums=[...raw.matchAll(/[\$NT\$¥€]?\s*(\d{1,6}[.,]\d{0,2})|(\d{2,6})/g)].map(m=>parseFloat((m[1]||m[2]).replace(/,/g,''))).filter(n=>n>0&&n<1000000);
+      const amount=nums.length>0?Math.max(...nums):0;
+      const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l.length>1&&!/^\d+$/.test(l));
+      const name=(lines[0]||'').substring(0,40);
+      const pfx=shared?'sh-':'';
+      if(amount>0) document.getElementById(pfx+'inp-amt').value=Math.round(amount);
+      if(name) document.getElementById(pfx+'inp-name').value=name;
+      const sc=autoClassify(raw+' '+name); document.getElementById(pfx+'inp-cat').value=sc;
+      rEl.textContent=`${t('ocrDone')}: ${name||'—'} $${amount>0?Math.round(amount):'?'} [${ce(sc)}${cl(sc)}]`;
+      showBubble(pfx+'ib',`📄 OCR\n📝 ${name||'—'}\n💰 ${amount>0?'$'+Math.round(amount):'—'}\n🏷️ ${ce(sc)}${cl(sc)}`);
+    }catch{pEl.style.display='none';rEl.textContent=t('ocrFail');}
+  });
+}
+
+// Background
+const BGS=[
+  {id:'g1',css:'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)'},
+  {id:'g2',css:'linear-gradient(135deg,#0d1117,#161b22,#1f6b38)'},
+  {id:'g3',css:'linear-gradient(135deg,#2d1b69,#11998e)'},
+  {id:'g4',css:'linear-gradient(135deg,#1a0533,#5c1a6b,#c0392b)'},
+  {id:'g5',css:'linear-gradient(135deg,#0f0c29,#302b63,#24243e)'},
+  {id:'g6',css:'linear-gradient(135deg,#134e5e,#71b280)'},
+  {id:'g7',css:'linear-gradient(135deg,#1c1c1c,#4a4a4a)'},
+];
+function applyBg(){
+  const el=document.getElementById('app-bg');
+  if(customBg&&currentBg==='custom')el.style.background=`url(${customBg}) center/cover no-repeat`;
+  else{const p=BGS.find(b=>b.id===currentBg)||BGS[0];el.style.background=p.css;}
+}
+function buildBgGrid(){
+  const g=document.getElementById('bg-grid'); g.innerHTML='';
+  BGS.forEach(b=>{const d=document.createElement('div');d.className='bg-opt'+(currentBg===b.id?' active':'');d.style.background=b.css;d.onclick=()=>{currentBg=b.id;localStorage.setItem('inv_bg',b.id);applyBg();buildBgGrid();};g.appendChild(d);});
+  if(customBg){const d=document.createElement('div');d.className='bg-opt'+(currentBg==='custom'?' active':'');d.style.backgroundImage=`url(${customBg})`;d.style.backgroundSize='cover';d.onclick=()=>{currentBg='custom';localStorage.setItem('inv_bg','custom');applyBg();buildBgGrid();};g.appendChild(d);}
+  else{const d=document.createElement('div');d.className='bg-opt plus';d.textContent='+';g.appendChild(d);}
+}
+
+// ============ CROP SYSTEM ============
+let cropImg=null, cropCanvas=null, cropCtx=null;
+let cropBox={x:0,y:0,w:0,h:0};
+let cropDrag={active:false,mode:'',startX:0,startY:0,startBox:null};
+let canvasScale=1;
+
+function openCrop(e){
+  const file=e.target.files[0]; if(!file) return; e.target.value='';
+  closeM('bg-modal');
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      cropImg=img;
+      cropCanvas=document.getElementById('crop-canvas');
+      cropCtx=cropCanvas.getContext('2d');
+      // Size canvas display to container width
+      const containerW=Math.min(400,window.innerWidth-48);
+      const aspect=img.height/img.width;
+      cropCanvas.width=img.width; cropCanvas.height=img.height;
+      cropCanvas.style.width=containerW+'px';
+      cropCanvas.style.height=Math.round(containerW*aspect)+'px';
+      canvasScale=img.width/containerW;
+      // Draw image
+      cropCtx.drawImage(img,0,0);
+      // Init crop box to center 80%
+      const bw=Math.round(img.width*0.8), bh=Math.round(img.height*0.8);
+      cropBox={x:Math.round((img.width-bw)/2), y:Math.round((img.height-bh)/2), w:bw, h:bh};
+      updateCropBox();
+      showModal('crop-modal');
+      setupCropEvents();
+      // i18n crop modal
+      document.getElementById('crop-title').textContent=currentLang==='en'?'✂️ Crop Background Image':currentLang==='es'?'✂️ Recortar Imagen':'✂️ 裁切背景圖片';
+      document.getElementById('crop-sub').textContent=currentLang==='en'?'Drag the box to select the area to display':currentLang==='es'?'Arrastra el recuadro para seleccionar el área':'拖曳方框選取要顯示的區域';
+      document.getElementById('crop-cancel').textContent=currentLang==='en'?'Cancel':currentLang==='es'?'Cancelar':'取消';
+      document.getElementById('crop-ok').textContent=currentLang==='en'?'✓ Apply as Background':currentLang==='es'?'✓ Aplicar como Fondo':'✓ 套用為背景';
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateCropBox(){
+  const s=1/canvasScale;
+  const box=document.getElementById('crop-box');
+  box.style.left=(cropBox.x*s)+'px';
+  box.style.top=(cropBox.y*s)+'px';
+  box.style.width=(cropBox.w*s)+'px';
+  box.style.height=(cropBox.h*s)+'px';
+  // Position handles at corners of the crop-box (relative to crop-box)
+  const handles={tl:{top:'-9px',left:'-9px'},tr:{top:'-9px',right:'-9px'},bl:{bottom:'-9px',left:'-9px'},br:{bottom:'-9px',right:'-9px'}};
+  for(const [k,pos] of Object.entries(handles)){
+    const h=document.getElementById('ch-'+k);
+    if(h){ Object.assign(h.style,{position:'absolute',...pos}); box.appendChild(h); }
+  }
+}
+
+function getEvtPos(e, containerEl){
+  const rect=containerEl.getBoundingClientRect();
+  const src=e.touches?e.touches[0]:e;
+  return {x:(src.clientX-rect.left)*canvasScale, y:(src.clientY-rect.top)*canvasScale};
+}
+
+function setupCropEvents(){
+  const box=document.getElementById('crop-box');
+  const container=document.getElementById('crop-container');
+  const handles=['ch-tl','ch-tr','ch-bl','ch-br'];
+  const addEvt=(el,mode)=>{
+    ['mousedown','touchstart'].forEach(ev=>{
+      el.addEventListener(ev,e=>{
+        e.stopPropagation(); e.preventDefault();
+        const pos=getEvtPos(e,container);
+        cropDrag={active:true,mode,startX:pos.x,startY:pos.y,startBox:{...cropBox}};
+      },{passive:false});
+    });
+  };
+  addEvt(box,'move');
+  handles.forEach(hid=>{ const h=document.getElementById(hid); if(h) addEvt(h,hid.replace('ch-','')); });
+  ['mousemove','touchmove'].forEach(ev=>{
+    container.addEventListener(ev,e=>{
+      if(!cropDrag.active) return;
+      e.preventDefault();
+      const pos=getEvtPos(e,container);
+      const dx=pos.x-cropDrag.startX, dy=pos.y-cropDrag.startY;
+      const sb=cropDrag.startBox;
+      const iw=cropCanvas.width, ih=cropCanvas.height;
+      const MIN=40;
+      if(cropDrag.mode==='move'){
+        cropBox.x=Math.max(0,Math.min(iw-sb.w, sb.x+dx));
+        cropBox.y=Math.max(0,Math.min(ih-sb.h, sb.y+dy));
+      } else if(cropDrag.mode==='br'){
+        cropBox.w=Math.max(MIN, Math.min(iw-sb.x, sb.w+dx));
+        cropBox.h=Math.max(MIN, Math.min(ih-sb.y, sb.h+dy));
+      } else if(cropDrag.mode==='bl'){
+        const nw=Math.max(MIN, sb.w-dx);
+        cropBox.x=Math.min(sb.x+sb.w-MIN, sb.x+sb.w-nw);
+        cropBox.w=nw;
+        cropBox.h=Math.max(MIN, Math.min(ih-sb.y, sb.h+dy));
+      } else if(cropDrag.mode==='tr'){
+        cropBox.w=Math.max(MIN, Math.min(iw-sb.x, sb.w+dx));
+        const nh=Math.max(MIN, sb.h-dy);
+        cropBox.y=Math.min(sb.y+sb.h-MIN, sb.y+sb.h-nh);
+        cropBox.h=nh;
+      } else if(cropDrag.mode==='tl'){
+        const nw=Math.max(MIN, sb.w-dx);
+        cropBox.x=Math.min(sb.x+sb.w-MIN, sb.x+sb.w-nw);
+        cropBox.w=nw;
+        const nh=Math.max(MIN, sb.h-dy);
+        cropBox.y=Math.min(sb.y+sb.h-MIN, sb.y+sb.h-nh);
+        cropBox.h=nh;
+      }
+      updateCropBox();
+    },{passive:false});
+  });
+  ['mouseup','touchend'].forEach(ev=>{ document.addEventListener(ev,()=>{ cropDrag.active=false; }); });
+}
+
+function applyCrop(){
+  const offscreen=document.createElement('canvas');
+  const targetW=800;
+  const scale=targetW/cropBox.w;
+  offscreen.width=targetW;
+  offscreen.height=Math.round(cropBox.h*scale);
+  const ctx=offscreen.getContext('2d');
+  ctx.drawImage(cropImg, cropBox.x, cropBox.y, cropBox.w, cropBox.h, 0, 0, offscreen.width, offscreen.height);
+  customBg=offscreen.toDataURL('image/jpeg',0.85);
+  try{ localStorage.setItem('inv_custom_bg',customBg); }catch(e){ console.warn('bg too large for localStorage'); }
+  currentBg='custom'; localStorage.setItem('inv_bg','custom');
+  applyBg();
+  closeM('crop-modal');
+  showModal('bg-modal'); buildBgGrid();
+}
+
+// ============ HELP SYSTEM ============
+const HELP_DATA={
+  zh:{
+    tabs:['📊 總覽','➕ 新增','📋 明細','💰 預算','👫 共同','⚙️ 設定'],
+    pages:[
+      // 0: 總覽
+      `<div class="help-section">
+        <div class="help-section-title">📊 總覽頁面</div>
+        <div class="help-item"><div class="help-icon">💰</div><div class="help-text"><strong>本期支出 / 可花餘額</strong><span>顯示本結算週期的累計花費，及設定預算後剩餘可花金額</span></div></div>
+        <div class="help-item"><div class="help-icon">🥧</div><div class="help-text"><strong>消費圓餅圖</strong><span>即時顯示「食衣住行育樂」六類別的金額與佔比，點選圖片可查看詳情</span></div></div>
+        <div class="help-item"><div class="help-icon">💡</div><div class="help-text"><strong>消費建議</strong><span>根據預算使用率與剩餘天數自動分析，顯示建議節制或繼續保持的提示，並顯示日均花費與本期預估總計</span></div></div>
+      </div>`,
+      // 1: 新增
+      `<div class="help-section">
+        <div class="help-section-title">➕ 新增消費</div>
+        <div class="help-item"><div class="help-icon">🎤</div><div class="help-text"><strong>語音輸入</strong><span>點擊「語音輸入」後說出品項與金額，例如「午餐兩百五十元」，系統自動辨識並填入。需要Chrome或Safari瀏覽器，並允許麥克風權限。</span></div></div>
+        <div class="help-item"><div class="help-icon">📷</div><div class="help-text"><strong>掃描發票</strong><span>拍照或上傳發票圖片，使用免費的Tesseract.js進行本機OCR辨識，自動提取品項與金額。首次使用需下載語言包（約10MB）。</span></div></div>
+        <div class="help-item"><div class="help-icon">🏷️</div><div class="help-text"><strong>自動分類</strong><span>根據品項名稱關鍵字自動判斷屬於「食衣住行育樂」哪個類別，也可手動選擇。</span></div></div>
+        <div class="help-item"><div class="help-icon">📅</div><div class="help-text"><strong>日期</strong><span>預設為今天，也可修改為其他日期。</span></div></div>
+      </div>`,
+      // 2: 明細
+      `<div class="help-section">
+        <div class="help-section-title">📋 消費明細</div>
+        <div class="help-item"><div class="help-icon">📋</div><div class="help-text"><strong>查看記錄</strong><span>列出所有消費記錄，依時間倒序排列（最新在上），顯示品項、類別、日期與金額。</span></div></div>
+        <div class="help-item"><div class="help-icon">✕</div><div class="help-text"><strong>刪除記錄</strong><span>點擊記錄右側的 ✕ 可刪除單筆記錄。</span></div></div>
+        <div class="help-item"><div class="help-icon">🗑️</div><div class="help-text"><strong>清除全部</strong><span>點「清除全部」可一次刪除所有記錄，操作前會詢問確認。</span></div></div>
+      </div>`,
+      // 3: 預算
+      `<div class="help-section">
+        <div class="help-section-title">💰 預算管理</div>
+        <div class="help-item"><div class="help-icon">💵</div><div class="help-text"><strong>月預算上限</strong><span>設定本月最多花費多少，搭配「本月存入」計算出可花餘額，進度條顯示使用率（綠色正常、黃色警示、紅色超支）。</span></div></div>
+        <div class="help-item"><div class="help-icon">💳</div><div class="help-text"><strong>本月存入</strong><span>記錄本月實際存入金額，可花餘額 = 預算上限 + 存入金額 − 已花費。</span></div></div>
+        <div class="help-item"><div class="help-icon">🎯</div><div class="help-text"><strong>各類別上限</strong><span>為每個消費類別設定最高花費，超過時會跳出橘色警示通知。</span></div></div>
+        <div class="help-item"><div class="help-icon">⚠️</div><div class="help-text"><strong>低消提示</strong><span>設定每個類別的最低花費提示金額，低於該金額時會顯示提醒（例如提醒自己「教育預算花太少了」）。</span></div></div>
+      </div>`,
+      // 4: 共同
+      `<div class="help-section">
+        <div class="help-section-title">👫 共同帳戶</div>
+        <div class="help-item"><div class="help-icon">🔑</div><div class="help-text"><strong>配對碼</strong><span>每個人有唯一的6碼英數配對碼。將自己的碼告訴對方，輸入對方的碼後即可配對，開啟共同帳戶功能。</span></div></div>
+        <div class="help-item"><div class="help-icon">📒</div><div class="help-text"><strong>共同帳本</strong><span>配對後可以新增「共同消費記錄」，擁有獨立的圓餅圖、預算設定與明細，不影響個人帳本。</span></div></div>
+        <div class="help-item"><div class="help-icon">💡</div><div class="help-text"><strong>注意事項</strong><span>目前為單機版本，配對僅在同一裝置有效。若需跨裝置同步，需要搭配雲端後端（未來可擴充）。</span></div></div>
+      </div>`,
+      // 5: 設定
+      `<div class="help-section">
+        <div class="help-section-title">⚙️ 設定說明</div>
+        <div class="help-item"><div class="help-icon">📅</div><div class="help-text"><strong>每月結算日</strong><span>設定每月幾號重新計算一次（1~28號），例如設為15，則每月15日到下月14日為一個結算週期。</span></div></div>
+        <div class="help-item"><div class="help-icon">🌐</div><div class="help-text"><strong>多語支援</strong><span>支援中文、English、Español三種語言，右上角下拉選單即可切換，所有介面文字同步更新。</span></div></div>
+        <div class="help-item"><div class="help-icon">🖼️</div><div class="help-text"><strong>更換背景</strong><span>內建7種漸層背景，或上傳自訂圖片。上傳後可用裁切工具選取想要顯示的範圍。</span></div></div>
+        <div class="help-item"><div class="help-icon">💾</div><div class="help-text"><strong>資料儲存</strong><span>所有資料存在本裝置的瀏覽器（localStorage），換裝置或換瀏覽器不會同步，屬單機儲存。</span></div></div>
+      </div>`
+    ]
+  },
+  en:{
+    tabs:['📊 Overview','➕ Add','📋 Details','💰 Budget','👫 Shared','⚙️ Settings'],
+    pages:[
+      `<div class="help-section"><div class="help-section-title">📊 Overview</div>
+        <div class="help-item"><div class="help-icon">💰</div><div class="help-text"><strong>Period Total / Balance</strong><span>Shows cumulative spending this billing cycle, and remaining balance if a budget is set.</span></div></div>
+        <div class="help-item"><div class="help-icon">🥧</div><div class="help-text"><strong>Spending Pie Chart</strong><span>Real-time breakdown of 6 categories (Food, Clothing, Housing, Transport, Education, Entertainment) with amounts and percentages.</span></div></div>
+        <div class="help-item"><div class="help-icon">💡</div><div class="help-text"><strong>Spending Advice</strong><span>Analyzes budget usage vs days remaining. Shows warnings or encouragement, plus daily average and projected total.</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">➕ Add Expense</div>
+        <div class="help-item"><div class="help-icon">🎤</div><div class="help-text"><strong>Voice Input</strong><span>Tap Voice Input and say the item and amount, e.g. "Lunch twelve dollars". Requires Chrome or Safari with microphone permission.</span></div></div>
+        <div class="help-item"><div class="help-icon">📷</div><div class="help-text"><strong>Scan Receipt</strong><span>Take or upload a photo of your receipt. Free on-device OCR via Tesseract.js. First use downloads a language pack (~10MB).</span></div></div>
+        <div class="help-item"><div class="help-icon">🏷️</div><div class="help-text"><strong>Auto Classify</strong><span>Automatically assigns a category based on keywords in the item name. You can also choose manually.</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">📋 Details</div>
+        <div class="help-item"><div class="help-icon">📋</div><div class="help-text"><strong>View Records</strong><span>Lists all expenses in reverse chronological order, showing name, category, date and amount.</span></div></div>
+        <div class="help-item"><div class="help-icon">✕</div><div class="help-text"><strong>Delete</strong><span>Tap ✕ on any record to delete it.</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">💰 Budget</div>
+        <div class="help-item"><div class="help-icon">💵</div><div class="help-text"><strong>Budget Limit</strong><span>Set a monthly spending cap. Combined with "Saved this month", calculates your remaining balance. Progress bar turns yellow at 80%, red at 100%.</span></div></div>
+        <div class="help-item"><div class="help-icon">🎯</div><div class="help-text"><strong>Category Limits</strong><span>Set a max for each category. Exceeding it triggers an orange alert notification.</span></div></div>
+        <div class="help-item"><div class="help-icon">⚠️</div><div class="help-text"><strong>Min Alerts</strong><span>Set a minimum spending reminder per category (e.g. remind yourself if you haven't spent enough on Education).</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">👫 Shared Account</div>
+        <div class="help-item"><div class="help-icon">🔑</div><div class="help-text"><strong>Pair Code</strong><span>Each user has a unique 6-character code. Share yours with your partner and enter theirs to pair up and unlock shared account features.</span></div></div>
+        <div class="help-item"><div class="help-icon">📒</div><div class="help-text"><strong>Shared Ledger</strong><span>After pairing, add shared expenses with their own chart, budget and details — completely separate from your personal account.</span></div></div>
+        <div class="help-item"><div class="help-icon">💡</div><div class="help-text"><strong>Note</strong><span>Currently single-device only. Cross-device sync requires a cloud backend (future feature).</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">⚙️ Settings</div>
+        <div class="help-item"><div class="help-icon">📅</div><div class="help-text"><strong>Billing Day</strong><span>Set the day of month (1–28) that resets your totals. E.g. day 15 means 15th to 14th of the following month.</span></div></div>
+        <div class="help-item"><div class="help-icon">🖼️</div><div class="help-text"><strong>Background</strong><span>Choose from 7 preset gradients or upload a photo. A crop tool lets you select exactly which area to show.</span></div></div>
+        <div class="help-item"><div class="help-icon">💾</div><div class="help-text"><strong>Storage</strong><span>All data is stored locally in your browser (localStorage). It will not sync between devices or browsers.</span></div></div>
+      </div>`
+    ]
+  },
+  es:{
+    tabs:['📊 Resumen','➕ Agregar','📋 Detalles','💰 Presupuesto','👫 Compartido','⚙️ Config'],
+    pages:[
+      `<div class="help-section"><div class="help-section-title">📊 Resumen</div>
+        <div class="help-item"><div class="help-icon">💰</div><div class="help-text"><strong>Total / Saldo</strong><span>Muestra el gasto acumulado del período y el saldo disponible si tienes un presupuesto configurado.</span></div></div>
+        <div class="help-item"><div class="help-icon">🥧</div><div class="help-text"><strong>Gráfico de Gastos</strong><span>Desglose en tiempo real de 6 categorías con montos y porcentajes.</span></div></div>
+        <div class="help-item"><div class="help-icon">💡</div><div class="help-text"><strong>Consejos</strong><span>Analiza el uso del presupuesto vs días restantes. Muestra advertencias o ánimo, más gasto diario y proyección.</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">➕ Agregar Gasto</div>
+        <div class="help-item"><div class="help-icon">🎤</div><div class="help-text"><strong>Voz</strong><span>Toca Entrada de Voz y di el artículo y monto. Requiere Chrome o Safari con permiso de micrófono.</span></div></div>
+        <div class="help-item"><div class="help-icon">📷</div><div class="help-text"><strong>Escanear Factura</strong><span>Toma o sube foto de tu factura. OCR gratuito local con Tesseract.js. Primer uso descarga paquete (~10MB).</span></div></div>
+        <div class="help-item"><div class="help-icon">🏷️</div><div class="help-text"><strong>Clasificación Auto</strong><span>Asigna categoría automáticamente según palabras clave. También puedes elegir manualmente.</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">📋 Detalles</div>
+        <div class="help-item"><div class="help-icon">📋</div><div class="help-text"><strong>Ver Registros</strong><span>Lista todos los gastos en orden cronológico inverso con nombre, categoría, fecha y monto.</span></div></div>
+        <div class="help-item"><div class="help-icon">✕</div><div class="help-text"><strong>Eliminar</strong><span>Toca ✕ en cualquier registro para eliminarlo.</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">💰 Presupuesto</div>
+        <div class="help-item"><div class="help-icon">💵</div><div class="help-text"><strong>Límite</strong><span>Establece un tope mensual. Combinado con "Ahorro", calcula tu saldo disponible. Barra amarilla al 80%, roja al 100%.</span></div></div>
+        <div class="help-item"><div class="help-icon">🎯</div><div class="help-text"><strong>Límites por Categoría</strong><span>Establece un máximo por categoría. Superarlo activa una alerta naranja.</span></div></div>
+        <div class="help-item"><div class="help-icon">⚠️</div><div class="help-text"><strong>Alertas Mínimas</strong><span>Recibe un recordatorio si gastas menos del mínimo definido en una categoría.</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">👫 Cuenta Compartida</div>
+        <div class="help-item"><div class="help-icon">🔑</div><div class="help-text"><strong>Código de Vinculación</strong><span>Cada usuario tiene un código único de 6 caracteres. Compártelo con tu pareja e ingresa el suyo para vincular cuentas.</span></div></div>
+        <div class="help-item"><div class="help-icon">📒</div><div class="help-text"><strong>Libro Compartido</strong><span>Tras vincular, agrega gastos compartidos con su propio gráfico, presupuesto y detalles, separados de tu cuenta personal.</span></div></div>
+        <div class="help-item"><div class="help-icon">💡</div><div class="help-text"><strong>Nota</strong><span>Actualmente solo funciona en el mismo dispositivo. La sincronización entre dispositivos requiere backend en la nube.</span></div></div>
+      </div>`,
+      `<div class="help-section"><div class="help-section-title">⚙️ Configuración</div>
+        <div class="help-item"><div class="help-icon">📅</div><div class="help-text"><strong>Día de Corte</strong><span>Establece el día del mes (1–28) que reinicia los totales.</span></div></div>
+        <div class="help-item"><div class="help-icon">🖼️</div><div class="help-text"><strong>Fondo</strong><span>Elige entre 7 fondos degradados o sube una foto. La herramienta de recorte te permite elegir exactamente qué área mostrar.</span></div></div>
+        <div class="help-item"><div class="help-icon">💾</div><div class="help-text"><strong>Almacenamiento</strong><span>Todos los datos se guardan localmente en tu navegador. No se sincronizan entre dispositivos.</span></div></div>
+      </div>`
+    ]
+  }
+};
+
+let helpPage=0;
+function openHelp(){
+  helpPage=0;
+  renderHelp();
+  showModal('help-modal');
+}
+function renderHelp(){
+  const data=HELP_DATA[currentLang]||HELP_DATA.zh;
+  document.getElementById('help-title').textContent=currentLang==='en'?'❓ Help':currentLang==='es'?'❓ Ayuda':'❓ 功能說明';
+  const tabsEl=document.getElementById('help-tabs');
+  tabsEl.innerHTML=data.tabs.map((tb,i)=>`<button class="help-tab${i===helpPage?' active':''}" onclick="helpPage=${i};renderHelp()">${tb}</button>`).join('');
+  document.getElementById('help-content').innerHTML=data.pages[helpPage]||'';
+}
+
+// Tabs
+function gotoTab(n,btn){
+  for(let i=0;i<5;i++) document.getElementById('tab'+i).style.display='none';
+  document.getElementById('tab'+n).style.display='';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// Modals
+function showModal(id){
+  if(id==='help-modal'){openHelp();document.getElementById('help-modal').style.display='flex';return;}
+  document.getElementById(id).style.display='flex';
+  if(id==='bg-modal')buildBgGrid();
+}
+function closeM(id){document.getElementById(id).style.display='none';}
+function closeMOv(e,id){if(e.target.id===id)closeM(id);}
+
+// Toast
+let toastTimer=null;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// Info bubble
+function showBubble(id,msg){const el=document.getElementById(id);el.textContent=msg;el.className='info-bub show';}
+
+// INIT
+document.getElementById('inp-date').value=today();
+document.getElementById('sh-inp-date').value=today();
+document.getElementById('period-day').value=periodDay;
+document.getElementById('lang-sel').value=currentLang;
+document.getElementById('b-budget').value=budget.limit||'';
+document.getElementById('b-savings').value=budget.savings||'';
+document.getElementById('sh-budget').value=sharedBudget.limit||'';
+document.getElementById('sh-savings').value=sharedBudget.savings||'';
+document.getElementById('partner-code-inp').value=partnerCode;
+applyBg();
+applyI18n();
+updateAll();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW failed:', err));
+  });
+}
+// PWA install prompt
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install banner after 3 seconds if not standalone
+  if (!window.matchMedia('(display-mode: standalone)').matches) {
+    setTimeout(() => showInstallBanner(), 3000);
+  }
+});
+function showInstallBanner() {
+  if (!deferredPrompt) return;
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'flex';
+}
+function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => {
+    deferredPrompt = null;
+    const banner = document.getElementById('install-banner');
+    if (banner) banner.style.display = 'none';
+  });
+}
+function dismissBanner() {
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'none';
+}
+</script>
+</body>
+</html>
