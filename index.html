@@ -1219,7 +1219,7 @@ function startVoice(sh=false){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const rec=new SR();
   rec.lang={zh:'zh-TW',en:'en-US',es:'es-ES'}[CL]||'zh-TW';
-  rec.continuous=false;   // stop automatically after silence
+  rec.continuous=false;
   rec.interimResults=true;
   rec.maxAlternatives=1;
   if(sh){shIsRec=true;shRecObj=rec;} else{isRec=true;recObj=rec;}
@@ -1230,11 +1230,13 @@ function startVoice(sh=false){
   document.getElementById(vhId).textContent=t('voiceListening');
   let finalTranscript='';
   let silenceTimer=null;
-  // Auto-stop after 2s of silence when we already have interim results
+  let started=false;
+  // Fix 1: 0.8 seconds silence → auto stop
   const resetSilence=()=>{
     clearTimeout(silenceTimer);
-    silenceTimer=setTimeout(()=>{ try{rec.stop();}catch(e){} }, 1800);
+    silenceTimer=setTimeout(()=>{ try{rec.stop();}catch(e){} }, 800);
   };
+  rec.onstart=()=>{ started=true; };
   rec.onresult=e=>{
     let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
@@ -1242,28 +1244,34 @@ function startVoice(sh=false){
       else{ interim+=e.results[i][0].transcript; resetSilence(); }
     }
     if(interim) document.getElementById(vhId).textContent='🎤 '+interim;
+    // If we have a final result, stop immediately
+    if(finalTranscript){ clearTimeout(silenceTimer); try{rec.stop();}catch(e){} }
   };
   rec.onerror=ev=>{
     clearTimeout(silenceTimer);
-    if(ev.error!=='aborted') showToast(ev.error==='not-allowed'?t('voiceMicDenied'):t('voiceNoSupport'),'err');
+    if(ev.error!=='aborted'&&ev.error!=='no-speech')
+      showToast(ev.error==='not-allowed'?t('voiceMicDenied'):t('voiceNoSupport'),'err');
     stopVoice(sh);
   };
   rec.onend=()=>{
     clearTimeout(silenceTimer);
-    stopVoice(sh);
+    // Fix 2: Reset UI state FIRST, then process result
+    // This ensures the orange mic indicator on iOS is released before we do anything else
+    if(sh){shIsRec=false;shRecObj=null;} else{isRec=false;recObj=null;}
+    document.getElementById(btnId).className='btn btn-v';
+    document.getElementById(viId).textContent='🎤';
+    document.getElementById(vtId).textContent=t('voiceBtn');
+    document.getElementById(vhId).textContent='';
     if(finalTranscript.trim()) parseAndShowVoice(finalTranscript.trim(), sh);
   };
   rec.start();
 }
 function stopVoice(sh=false){
   const rec=sh?shRecObj:recObj;
-  try{ if(rec){rec.abort();} }catch(e){}
-  if(sh){shIsRec=false;shRecObj=null;} else{isRec=false;recObj=null;}
-  const btnId=sh?'sh-vbtn':'vbtn', viId=sh?'sh-vi':'vi', vtId=sh?'sh-vt':'vt', vhId=sh?'sh-vh':'vh';
-  document.getElementById(btnId).className='btn btn-v';
-  document.getElementById(viId).textContent='🎤';
-  document.getElementById(vtId).textContent=t('voiceBtn');
-  document.getElementById(vhId).textContent='';
+  // Fix 2: Use stop() not abort() — abort() on iOS Safari leaves mic open (orange light stays)
+  // stop() gracefully ends recording and fires onend, which cleans up UI
+  try{ if(rec){ rec.stop(); } }catch(e){}
+  // Don't clear isRec/recObj here — let onend handle it to avoid double-cleanup
 }
 
 function parseAndShowVoice(text, sh=false){
@@ -1655,46 +1663,51 @@ function subscribeRoom(withCode){
 }
 
 // Atomic pair lock using Firebase transaction.
-// pairLock/CODE = {owner: WHO_PAIRED_WITH_THIS_DEVICE}
-// Transaction ensures only one device can lock a target at a time.
+// pairLock/CODE = {owner: WHO_LOCKED_THIS_SLOT}
+// Two-step: quick read for instant feedback, then transaction for race safety.
 function initiatePair(theirCode){
   showToast('🔄 連線中...', null);
-  const lockRef = fbDB.ref('pairLock/'+theirCode);
-  lockRef.transaction(function(current){
-    if(current === null){
-      // Free — claim the lock
-      return { owner: myCode, ts: Date.now() };
+
+  function showAlreadyTaken(){
+    showToast('⚠️ '+theirCode+' '+t('pairAlreadyTaken'),'err');
+    const inp=document.getElementById('partner-inp');
+    if(inp){
+      inp.value='';
+      inp.style.borderColor='var(--ac3)';
+      setTimeout(function(){ inp.style.borderColor=''; },4000);
     }
-    if(current.owner === myCode){
-      // We already own it — refresh
-      return { owner: myCode, ts: Date.now() };
-    }
-    // Someone else owns it — abort (return undefined = don't commit)
-    return undefined;
-  }, function(error, committed, snap){
-    if(error){
-      showToast('Firebase error: '+error.message,'err');
-      partnerCode=''; localStorage.setItem('inv_partner','');
-      document.getElementById('partner-inp').value=''; updatePairUI(); return;
-    }
-    if(!committed){
-      // Lock taken by someone else
-      showToast('\u26a0\ufe0f '+theirCode+' '+t('pairAlreadyTaken'),'err');
-      partnerCode=''; localStorage.setItem('inv_partner','');
-      document.getElementById('partner-inp').value=''; updatePairUI(); return;
-    }
-    // Lock claimed successfully — proceed with pairing
-    partnerCode=theirCode;
-    localStorage.setItem('inv_partner',theirCode);
-    document.getElementById('partner-inp').value=theirCode;
-    // Lock our own device too (so others can't pair with us)
-    fbDB.ref('pairLock/'+myCode).set({owner:theirCode, ts:Date.now()}).catch(function(){});
-    // Trigger target device's auto-accept via pairRequests
-    fbDB.ref('pairRequests/'+theirCode).set({from:myCode, ts:Date.now()}).catch(function(){});
-    showToast(t('pairSuccess'),'ok');
+    partnerCode=''; localStorage.setItem('inv_partner','');
     updatePairUI();
-    subscribeRoom(theirCode);
-  });
+  }
+
+  function doClaim(){
+    fbDB.ref('pairLock/'+theirCode).transaction(function(current){
+      if(current===null) return {owner:myCode,ts:Date.now()};
+      if(current.owner===myCode) return {owner:myCode,ts:Date.now()};
+      return undefined; // abort — someone else owns it
+    }, function(error,committed){
+      if(error||!committed){ showAlreadyTaken(); return; }
+      // Claimed — complete pairing
+      partnerCode=theirCode;
+      localStorage.setItem('inv_partner',theirCode);
+      document.getElementById('partner-inp').value=theirCode;
+      fbDB.ref('pairLock/'+myCode).set({owner:theirCode,ts:Date.now()}).catch(function(){});
+      fbDB.ref('pairRequests/'+theirCode).set({from:myCode,ts:Date.now()}).catch(function(){});
+      showToast(t('pairSuccess'),'ok');
+      updatePairUI();
+      subscribeRoom(theirCode);
+    });
+  }
+
+  // Quick read first — gives instant error if clearly already locked
+  fbDB.ref('pairLock/'+theirCode).once('value').then(function(snap){
+    var lock=snap.val();
+    if(lock && lock.owner && lock.owner!==myCode){
+      showAlreadyTaken(); // already locked, skip transaction
+    } else {
+      doClaim(); // free or owned by us — do atomic claim
+    }
+  }).catch(function(){ doClaim(); }); // read failed — try transaction anyway
 }
 
 // Legacy alias
