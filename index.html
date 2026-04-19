@@ -194,6 +194,10 @@ input[type="date"].inp{
 /* SHARED BADGE */
 .sh-badge{background:rgba(116,185,255,0.18);border:.5px solid rgba(116,185,255,0.35);border-radius:10px;padding:1px 6px;font-size:9px;color:var(--ac4);margin-left:5px}
 
+/* HISTORY */
+.hist-period-header{font-size:11px;font-weight:600;color:var(--ac);padding:8px 0 4px;border-bottom:.5px solid rgba(255,255,255,0.1);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.hist-period-sum{font-size:10px;color:var(--ts)}
+
 /* EDIT MODAL special */
 .edit-section{margin-bottom:10px}
 .pb{padding-bottom:24px}
@@ -222,7 +226,8 @@ input[type="date"].inp{
   <button class="tab-btn" id="tb1" onclick="gotoTab(1,this)">➕ <span id="t1">新增</span></button>
   <button class="tab-btn" id="tb2" onclick="gotoTab(2,this)">📋 <span id="t2">明細</span></button>
   <button class="tab-btn" id="tb3" onclick="gotoTab(3,this)">💰 <span id="t3">預算</span></button>
-  <button class="tab-btn" id="tb4" onclick="gotoTab(4,this)">🫱🫲 <span id="t4">共同</span></button>
+  <button class="tab-btn" id="tb4" onclick="gotoTab(4,this)">🫶🏻 <span id="t4">共同</span></button>
+  <button class="tab-btn" id="tb5" onclick="gotoTab(5,this)">📚 <span id="t5">歷史</span></button>
 </div>
 
 <!-- ===== TAB 0: 總覽 ===== -->
@@ -337,7 +342,7 @@ input[type="date"].inp{
 <div id="tab4" style="display:none" class="pb">
 <!-- Pair section -->
 <div class="sbox">
-  <div class="sbox-title" id="pair-ttl">👫 跨裝置配對</div>
+  <div class="sbox-title" id="pair-ttl">🫶🏻 跨裝置配對</div>
   <div id="pair-status-div"></div>
   <div id="pair-setup-div">
     <div style="font-size:11px;color:var(--ts);margin-bottom:8px" id="pair-sub">將自己的配對碼分享給對方，輸入對方的碼即可跨裝置連結。</div>
@@ -420,6 +425,34 @@ input[type="date"].inp{
   <div id="sh-recs-container" style="padding:0 10px"></div>
 </div>
 </div><!-- end tab4 -->
+
+<!-- ===== TAB 5: 歷史記錄 ===== -->
+<div id="tab5" style="display:none" class="pb">
+  <div class="sbox">
+    <div class="sbox-title" id="hist-ttl">📚 歷史記錄</div>
+    <!-- Archive current period button -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-p" style="flex:1;min-width:120px" onclick="archiveCurrentPeriod()" id="hist-archive-btn">📥 封存本期記錄</button>
+      <button class="btn btn-d" style="flex:none;padding:8px 12px" onclick="clearHistory()" id="hist-clr-btn">清除歷史</button>
+    </div>
+    <div class="notice" id="hist-notice">每次結算日到時可手動封存本期，封存後本期記錄會保留在歷史，不影響新一期的計算。</div>
+  </div>
+  <!-- Month filter -->
+  <div style="padding:0 10px 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <span style="font-size:11px;color:var(--ts)" id="hist-filter-lbl">篩選月份：</span>
+    <select class="inp" id="hist-month-sel" style="flex:1;min-width:120px;margin:0" onchange="renderHistory()">
+      <option value="all" id="hist-all-opt">全部</option>
+    </select>
+  </div>
+  <!-- History stats -->
+  <div class="stats-row" id="hist-stats-row" style="display:none">
+    <div class="stat-card"><div class="val" id="hist-total">$0</div><div class="lbl" id="hist-lbl-total">期間支出</div></div>
+    <div class="stat-card"><div class="val" id="hist-count">0</div><div class="lbl" id="hist-lbl-count">筆記錄</div></div>
+    <div class="stat-card"><div class="val" id="hist-top">—</div><div class="lbl" id="hist-lbl-top">最多類別</div></div>
+  </div>
+  <!-- History records -->
+  <div id="hist-container" style="padding:0 10px"></div>
+</div>
 
 </div><!-- #app -->
 
@@ -522,6 +555,7 @@ const FB_CONFIG = {
 };
 let fbDB = null;
 let fbListener = null;
+let fbCurrentRoom = null;
 function initFirebase(){
   try {
     if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
@@ -545,7 +579,7 @@ const L={
     helpTtl:'❓ 功能說明',
     budTtl:'💵 月預算設定',blBudget:'月預算上限',blSavings:'本月存入',blSpent:'已花費',blSpent2:'本期已花',blBalance:'目前結餘',blSavings2:'已存入',blRemain:'可花餘額',
     clTtl:'🎯 各類別上限 & 低消提示',clHMax:'上限',clHMin:'低消提示',
-    pairTtl:'👫 跨裝置配對',pairSub:'將自己的配對碼分享給對方，輸入對方的碼即可跨裝置連結。',pairMyLbl:'我的配對碼（分享給對方）：',pairBtn:'配對',unpairBtn:'解除配對',pairNotice:'💡 使用Firebase即時資料庫，配對後雙方資料即時同步。',pairedTxt:'已與對方配對',connected:'已連結',disconnected:'未配對',pairSuccess:'配對成功！',pairFail:'配對碼無效（需6碼英數）',pairSelf:'不能配對自己',
+    pairTtl:'🫶🏻 跨裝置配對',pairSub:'將自己的配對碼分享給對方，輸入對方的碼即可跨裝置連結。',pairMyLbl:'我的配對碼（分享給對方）：',pairBtn:'配對',unpairBtn:'解除配對',pairNotice:'💡 使用Firebase即時資料庫，配對後雙方資料即時同步。',pairedTxt:'已與對方配對',connected:'已連結',disconnected:'未配對',pairSuccess:'配對成功！',pairFail:'配對碼無效（需6碼英數）',pairSelf:'不能配對自己',
     shBudTtl:'💵 共同月預算',shBlBudget:'共同預算上限',shBlSavings:'共同存入',shBlSpent:'共同已花',shBlRemain:'共同餘額',
     shAddTtl:'➕ 新增共同消費',shAddT:'新增共同',shScanT:'掃描',shListTtl:'共同消費明細',shClr:'清除',
     shAdviceTtl:'💡 共同消費建議',shChartTtl:'共同消費分佈',
@@ -559,6 +593,10 @@ const L={
     adviceGood:'本期消費狀況良好，繼續保持！',adviceOver:'⚠️ 已超出預算！建議減少非必要支出。',adviceWarn:'本月消費已達預算 {pct}%，剩餘 {days} 天，建議節制。',
     budOverMsg:'⚠️ 本期支出 ${spent} 已超過預算 ${budget}，超支 ${over}！',
     cropTtl:'✂️ 裁切背景圖片',cropSub:'拖曳方框選取顯示區域，拖四角調整大小',cropOk:'✓ 套用為背景',cropCancel:'取消',
+    t5:'歷史',histTtl:'📚 歷史記錄',histArchiveBtn:'📥 封存本期記錄',histClrBtn:'清除歷史',
+    histNotice:'結算日到時封存本期，記錄保存在歷史，新一期重新計算。',
+    histFilterLbl:'篩選：',histAllOpt:'全部',histLblTotal:'期間支出',histLblCount:'筆',histLblTop:'最多類別',
+    histEmpty:'📭 尚無歷史記錄\n封存本期後記錄會在這裡',histArchived:'✅ 本期已封存！',histAlreadyEmpty:'本期無記錄可封存',
   },
   en:{
     appTitle:'💳 Invoice Manager',
@@ -588,6 +626,10 @@ const L={
     adviceGood:'Spending looks healthy. Keep it up!',adviceOver:'⚠️ Over budget! Reduce unnecessary spending.',adviceWarn:'Used {pct}% of budget with {days} days left.',
     budOverMsg:'⚠️ Spent ${spent} exceeds budget ${budget}, over by ${over}!',
     cropTtl:'✂️ Crop Background',cropSub:'Drag box to select area, drag corners to resize',cropOk:'✓ Apply',cropCancel:'Cancel',
+    t5:'History',histTtl:'📚 History',histArchiveBtn:'📥 Archive This Period',histClrBtn:'Clear History',
+    histNotice:'Archive current period records on billing day. Archived records are kept here separately from active records.',
+    histFilterLbl:'Filter:',histAllOpt:'All',histLblTotal:'Period Total',histLblCount:'Records',histLblTop:'Top Category',
+    histEmpty:'📭 No history yet\nArchive this period to save records here',histArchived:'✅ Period archived!',histAlreadyEmpty:'No records to archive this period',
   },
   es:{
     appTitle:'💳 Gestor de Facturas',
@@ -617,6 +659,10 @@ const L={
     adviceGood:'¡Gasto saludable! ¡Sigue así!',adviceOver:'⚠️ ¡Presupuesto excedido! Reduce gastos.',adviceWarn:'Usaste {pct}% del presupuesto con {days} días restantes.',
     budOverMsg:'⚠️ Gastado ${spent} supera presupuesto ${budget}, exceso ${over}!',
     cropTtl:'✂️ Recortar Fondo',cropSub:'Arrastra el recuadro para seleccionar área',cropOk:'✓ Aplicar',cropCancel:'Cancelar',
+    t5:'Historial',histTtl:'📚 Historial',histArchiveBtn:'📥 Archivar Período',histClrBtn:'Limpiar Historial',
+    histNotice:'Archiva los registros del período actual. Los registros archivados se guardan aquí por separado.',
+    histFilterLbl:'Filtrar:',histAllOpt:'Todo',histLblTotal:'Total del Período',histLblCount:'Registros',histLblTop:'Categoría Top',
+    histEmpty:'📭 Sin historial aún\nArchiva este período para guardar registros aquí',histArchived:'✅ ¡Período archivado!',histAlreadyEmpty:'Sin registros para archivar',
   }
 };
 const CATS={
@@ -734,6 +780,20 @@ function applyI18n(){
   renderRecs(false); renderRecs(true);
   updateChart(false); updateChart(true);
   updateBudget(); updateAdvice(false); updateAdvice(true);
+  // History tab
+  const t5el=document.getElementById('t5'); if(t5el) t5el.textContent=t('t5');
+  const hTtl=document.getElementById('hist-ttl'); if(hTtl) hTtl.textContent=t('histTtl');
+  const hArc=document.getElementById('hist-archive-btn'); if(hArc) hArc.textContent=t('histArchiveBtn');
+  const hClr=document.getElementById('hist-clr-btn'); if(hClr) hClr.textContent=t('histClrBtn');
+  const hNot=document.getElementById('hist-notice'); if(hNot) hNot.textContent=t('histNotice');
+  const hFlt=document.getElementById('hist-filter-lbl'); if(hFlt) hFlt.textContent=t('histFilterLbl');
+  const hAll=document.getElementById('hist-all-opt'); if(hAll) hAll.textContent=t('histAllOpt');
+  const hLT=document.getElementById('hist-lbl-total'); if(hLT) hLT.textContent=t('histLblTotal');
+  const hLC=document.getElementById('hist-lbl-count'); if(hLC) hLC.textContent=t('histLblCount');
+  const hLP=document.getElementById('hist-lbl-top'); if(hLP) hLP.textContent=t('histLblTop');
+  // Update pair title icon (always use 🫶🏻)
+  const pTtl=document.getElementById('pair-ttl'); if(pTtl) pTtl.textContent='🫶🏻 '+t('pairTtl').replace(/^[^\s]+\s/,'');
+  renderHistory();
 }
 function setLang(l){ CL=l; localStorage.setItem('inv_lang',l); document.getElementById('lang-sel').value=l; applyI18n(); }
 function buildCatSel(id){
@@ -908,14 +968,21 @@ function updateAdvice(sh=false){
   if(sorted.length){
     lines.push(`🔝 ${ce(sorted[0][0])}${cl(sorted[0][0])} $${sorted[0][1].toLocaleString()}`);
     // Suggest reduction if over 60% in one category
-    if(total>0&&sorted[0][1]/total>0.6) lines.push(`💡 ${ce(sorted[0][0])}${cl(sorted[0][0])} 佔比超過60%，可考慮減少。`);
+    if(total>0&&sorted[0][1]/total>0.6){
+      const reduceLabel={zh:'佔比超過60%，建議減少此類消費',en:'over 60% of total, consider reducing',es:'más del 60% del total, considera reducir'}[CL]||'佔比超過60%，建議減少';
+      lines.push(`💡 ${ce(sorted[0][0])}${cl(sorted[0][0])} ${reduceLabel}`);
+    }
     if(sorted.length>1) lines.push(`2️⃣ ${ce(sorted[1][0])}${cl(sorted[1][0])} $${sorted[1][1].toLocaleString()}`);
   }
   const perDay=daysPassed>0?Math.round(total/daysPassed):0;
-  if(perDay>0) lines.push(`📅 ${CL==='en'?'Daily avg':CL==='es'?'Prom. diario':'日均花費'}: $${perDay.toLocaleString()}`);
+  if(perDay>0){
+    const dayLabel={zh:'📅 日均花費',en:'📅 Daily average',es:'📅 Promedio diario'}[CL]||'📅 日均花費';
+    lines.push(`${dayLabel}: $${perDay.toLocaleString()}`);
+  }
   if(daysLeft>0&&perDay>0&&bTotal<=0){
     const proj=total+perDay*daysLeft;
-    lines.push(`🔮 ${CL==='en'?'Projected':'Proyección'}: $${proj.toLocaleString()}`);
+    const projLabel={zh:'🔮 預估本期總花費',en:'🔮 Projected period total',es:'🔮 Total proyectado del período'}[CL]||'🔮 預估本期總花費';
+    lines.push(`${projLabel}: $${proj.toLocaleString()}`);
   }
   const elId=sh?'sh-advice-content':'advice-content';
   document.getElementById(elId).innerHTML=`<div class="advice-card ${cls}">${lines.join('\n')}</div>`;
@@ -952,9 +1019,8 @@ function clearAll(sh=false){
 function saveRecs(){ localStorage.setItem('inv_recs',JSON.stringify(records)); }
 function saveShRecs(){
   localStorage.setItem('inv_sh_recs',JSON.stringify(shRecs));
-  if(partnerCode&&fbDB){
-    const roomKey=[myCode,partnerCode].sort().join('_');
-    fbDB.ref(`rooms/${roomKey}/shRecs`).set(shRecs).catch(()=>{});
+  if(fbDB&&fbCurrentRoom){
+    fbDB.ref(`rooms/${fbCurrentRoom}/shRecs`).set(shRecs).catch(()=>{});
   }
 }
 
@@ -1029,7 +1095,9 @@ function startVoice(sh=false){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const rec=new SR();
   rec.lang={zh:'zh-TW',en:'en-US',es:'es-ES'}[CL]||'zh-TW';
-  rec.continuous=false; rec.interimResults=true; rec.maxAlternatives=3;
+  rec.continuous=false;   // stop automatically after silence
+  rec.interimResults=true;
+  rec.maxAlternatives=1;
   if(sh){shIsRec=true;shRecObj=rec;} else{isRec=true;recObj=rec;}
   const btnId=sh?'sh-vbtn':'vbtn', viId=sh?'sh-vi':'vi', vtId=sh?'sh-vt':'vt', vhId=sh?'sh-vh':'vh';
   document.getElementById(btnId).className='btn btn-v rec';
@@ -1037,21 +1105,29 @@ function startVoice(sh=false){
   document.getElementById(vtId).textContent=t('voiceStop');
   document.getElementById(vhId).textContent=t('voiceListening');
   let finalTranscript='';
+  let silenceTimer=null;
+  // Auto-stop after 2s of silence when we already have interim results
+  const resetSilence=()=>{
+    clearTimeout(silenceTimer);
+    silenceTimer=setTimeout(()=>{ try{rec.stop();}catch(e){} }, 1800);
+  };
   rec.onresult=e=>{
     let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
       if(e.results[i].isFinal) finalTranscript+=e.results[i][0].transcript;
-      else interim+=e.results[i][0].transcript;
+      else{ interim+=e.results[i][0].transcript; resetSilence(); }
     }
     if(interim) document.getElementById(vhId).textContent='🎤 '+interim;
   };
   rec.onerror=ev=>{
-    showToast(ev.error==='not-allowed'?t('voiceMicDenied'):t('voiceNoSupport'),'err');
+    clearTimeout(silenceTimer);
+    if(ev.error!=='aborted') showToast(ev.error==='not-allowed'?t('voiceMicDenied'):t('voiceNoSupport'),'err');
     stopVoice(sh);
   };
   rec.onend=()=>{
+    clearTimeout(silenceTimer);
     stopVoice(sh);
-    if(finalTranscript) parseAndShowVoice(finalTranscript.trim(), sh);
+    if(finalTranscript.trim()) parseAndShowVoice(finalTranscript.trim(), sh);
   };
   rec.start();
 }
@@ -1269,78 +1345,95 @@ function doPair(){
   partnerCode=code; localStorage.setItem('inv_partner',code);
   showToast(t('pairSuccess'),'ok');
   updatePairUI();
-  subscribeFB();
+  initiatePair(code); // writes to partner's pairRequests → triggers their auto-accept
 }
 function unpair(){
-  if(fbListener){ const roomKey=[myCode,partnerCode].sort().join('_'); fbDB&&fbDB.ref(`rooms/${roomKey}`).off(); fbListener=null; }
-  partnerCode=''; localStorage.setItem('inv_partner','');
-  updatePairUI(); updateAll();
-}
-// ==================== FIREBASE PAIRING ====================
-function updatePairUI(){
-  const paired=!!partnerCode;
-  document.getElementById('pair-status-div').innerHTML=`<div class="pair-badge ${paired?'on':'off'}">${paired?'🟢':'⚪'} ${t(paired?'connected':'disconnected')}</div>`;
-  document.getElementById('my-code').textContent=myCode;
-  document.getElementById('pair-info-div').style.display=paired?'block':'none';
-  document.getElementById('unpair-btn').textContent=t('unpairBtn');
-  if(paired) document.getElementById('paired-txt').textContent=`${t('pairedTxt')}: ${partnerCode}`;
-  ['sh-bud-box','sh-add-box','sh-advice-box','sh-chart-box','sh-list-box'].forEach(id=>{
-    document.getElementById(id).style.display=paired?'block':'none';
-  });
-}
-function doPair(){
-  const code=document.getElementById('partner-inp').value.trim().toUpperCase();
-  if(!/^[A-Z0-9]{6}$/.test(code)){showToast(t('pairFail'),'err');return;}
-  if(code===myCode){showToast(t('pairSelf'),'err');return;}
-  partnerCode=code; localStorage.setItem('inv_partner',code);
-  showToast(t('pairSuccess'),'ok');
-  updatePairUI();
-  subscribeFB();
-}
-function unpair(){
-  if(partnerCode&&fbDB){
-    const roomKey=[myCode,partnerCode].sort().join('_');
-    try{ fbDB.ref(`rooms/${roomKey}`).off(); fbDB.ref(`pairRequests/${myCode}`).off(); }catch(e){}
-    fbDB.ref(`rooms/${roomKey}/members/${myCode}/paired`).set(false).catch(()=>{});
+  if(fbDB&&partnerCode){
+    try{
+      fbDB.ref(`pairRequests/${myCode}`).off();
+      if(fbCurrentRoom) fbDB.ref(`rooms/${fbCurrentRoom}`).off();
+      // Clean up our presence
+      if(fbCurrentRoom) fbDB.ref(`rooms/${fbCurrentRoom}/members/${myCode}`).remove().catch(()=>{});
+      fbDB.ref(`pairRequests/${myCode}`).remove().catch(()=>{});
+    }catch(e){}
   }
-  fbListener=null;
+  fbListener=null; fbCurrentRoom=null;
   partnerCode=''; localStorage.setItem('inv_partner','');
   updatePairUI(); updateAll();
+  // Re-start listener so we can accept new pair requests
+  if(fbDB) startFBListeners();
 }
 
-function subscribeFB(){
-  if(!fbDB||!partnerCode) return;
-  // Clean up old listeners
-  try{ fbDB.ref().off(); }catch(e){}
-  fbListener=null;
-  const roomKey=[myCode,partnerCode].sort().join('_');
+// startFBListeners: always listen for incoming pair requests regardless of pairing status
+// Key design: pairRequests is ONE-WAY signal only. Room subscription is separate.
+function startFBListeners(){
+  if(!fbDB) return;
+
+  // ── Step 1: Always watch for someone pairing with us ──
+  // This fires even BEFORE we have a partnerCode, so device B sees A's request immediately
+  fbDB.ref(`pairRequests/${myCode}`).on('value', snap=>{
+    const req=snap.val();
+    if(!req||!req.from) return;
+    const theirCode=req.from;
+    if(theirCode===myCode) return; // ignore self
+
+    if(theirCode!==partnerCode){
+      // New pair request — auto-accept
+      partnerCode=theirCode;
+      localStorage.setItem('inv_partner',theirCode);
+      document.getElementById('partner-inp').value=theirCode;
+      showToast(`🫶🏻 ${theirCode} ${t('pairSuccess')}`,'ok');
+      updatePairUI();
+    }
+    // Always (re)subscribe to room when we get/confirm a pair signal
+    subscribeRoom(theirCode);
+  });
+
+  // ── Step 2: If already paired from a previous session, subscribe room directly ──
+  if(partnerCode) subscribeRoom(partnerCode);
+}
+
+function subscribeRoom(withCode){
+  if(!fbDB||!withCode) return;
+  const roomKey=[myCode,withCode].sort().join('_');
+
+  // Remove previous room listener if any
+  if(fbListener&&fbCurrentRoom){
+    try{ fbDB.ref(`rooms/${fbCurrentRoom}`).off(); }catch(e){}
+  }
+  fbCurrentRoom=roomKey;
   const roomRef=fbDB.ref(`rooms/${roomKey}`);
 
-  // Announce online presence
-  roomRef.child(`members/${myCode}`).set({paired:true, code:myCode, ts:Date.now()}).catch(()=>{});
+  // Announce our presence in the room
+  roomRef.child(`members/${myCode}`).set({
+    code:myCode, paired:true, ts:Date.now()
+  }).catch(()=>{});
 
-  // Push our current shared data up
+  // Push our local shared data to Firebase
   roomRef.child('shRecs').set(shRecs).catch(()=>{});
   roomRef.child('shBudget').set(shBudget).catch(()=>{});
 
-  // Subscribe to entire room — syncs everything
+  // Watch the room for all changes (records, budget, partner presence)
   fbListener=roomRef.on('value', snap=>{
     const data=snap.val(); if(!data) return;
 
-    // Sync shRecs
+    // Sync shRecs from Firebase → local
     if(data.shRecs!==undefined){
-      const inc=data.shRecs?( Array.isArray(data.shRecs)?data.shRecs:Object.values(data.shRecs) ):[];
+      const inc=data.shRecs
+        ?(Array.isArray(data.shRecs)?data.shRecs:Object.values(data.shRecs))
+        :[];
       if(JSON.stringify(inc)!==JSON.stringify(shRecs)){
-        shRecs=inc; localStorage.setItem('inv_sh_recs',JSON.stringify(shRecs));
+        shRecs=inc;
+        localStorage.setItem('inv_sh_recs',JSON.stringify(shRecs));
         renderRecs(true); updateChart(true); updateAdvice(true);
       }
     }
 
-    // Sync shBudget
+    // Sync shBudget from Firebase → local
     if(data.shBudget){
       const ib=data.shBudget;
       if(ib.limit!==shBudget.limit||ib.savings!==shBudget.savings){
-        shBudget={limit:ib.limit||0,savings:ib.savings||0};
+        shBudget={limit:ib.limit||0, savings:ib.savings||0};
         localStorage.setItem('inv_sh_bud',shBudget.limit);
         localStorage.setItem('inv_sh_sav',shBudget.savings);
         document.getElementById('sh-budget').value=shBudget.limit||'';
@@ -1348,37 +1441,33 @@ function subscribeFB(){
         updateBudget();
       }
     }
-  }, ()=>{ showToast('Firebase sync error','err'); });
 
-  // Listen for partner pairing us back (they write to our pairRequests node)
-  fbDB.ref(`pairRequests/${myCode}`).on('value', snap=>{
-    const req=snap.val();
-    if(req&&req.from){
-      const theirCode=req.from;
-      if(theirCode!==partnerCode && theirCode!==myCode){
-        // Auto-accept pair from partner device
-        partnerCode=theirCode;
-        localStorage.setItem('inv_partner',theirCode);
-        document.getElementById('partner-inp').value=theirCode;
-        showToast(`🔗 ${theirCode} ${t('pairSuccess')}`,'ok');
+    // Detect partner joining the room → show connected status
+    if(data.members){
+      const partnerPresent=Object.values(data.members)
+        .some(m=>m.code===withCode&&m.paired);
+      if(partnerPresent && !document.querySelector('.pair-badge.on')){
         updatePairUI();
-        subscribeFB();
-      } else if(theirCode===partnerCode && !document.getElementById('pair-info-div').style.display){
-        // Already paired, just notify
-        showToast('🟢 '+t('connected'),'ok');
       }
     }
-  });
-
-  // Announce to partner: write to their pairRequests so they auto-pair back
-  fbDB.ref(`pairRequests/${partnerCode}`).set({from:myCode, ts:Date.now()}).catch(()=>{});
+  }, ()=>{ showToast('Firebase sync error','err'); });
 }
 
-// Push shared budget changes to Firebase
+// Called by doPair() when WE initiate pairing
+function initiatePair(theirCode){
+  // Write to their pairRequests — this is the ONE signal that triggers their auto-accept
+  fbDB.ref(`pairRequests/${theirCode}`).set({from:myCode, ts:Date.now()})
+    .then(()=>{ subscribeRoom(theirCode); })
+    .catch(()=>{ showToast('Firebase write failed','err'); });
+}
+
+// Legacy alias
+function subscribeFB(){ if(partnerCode) subscribeRoom(partnerCode); }
+
+// Push shared budget to Firebase
 function pushShBudgetToFB(){
-  if(!fbDB||!partnerCode) return;
-  const roomKey=[myCode,partnerCode].sort().join('_');
-  fbDB.ref(`rooms/${roomKey}/shBudget`).set(shBudget).catch(()=>{});
+  if(!fbDB||!fbCurrentRoom) return;
+  fbDB.ref(`rooms/${fbCurrentRoom}/shBudget`).set(shBudget).catch(()=>{});
 }
 
 // ==================== BACKGROUND ====================
@@ -1545,13 +1634,109 @@ function renderHelp(){
 
 // ==================== TABS / MODALS ====================
 function gotoTab(n,btn){
-  for(let i=0;i<5;i++){const el=document.getElementById('tab'+i);if(el)el.style.display='none';}
+  for(let i=0;i<6;i++){const el=document.getElementById('tab'+i);if(el)el.style.display='none';}
   document.getElementById('tab'+n).style.display='';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(n===0){updateChart(false);updateAdvice(false);}
-  if(n===3){buildClList();buildBgGrid&&buildBgGrid();}
+  if(n===3){buildClList();}
   if(n===4){updateChart(true);updateAdvice(true);}
+  if(n===5){renderHistory();}
+}
+
+// ==================== HISTORY ====================
+let history = JSON.parse(localStorage.getItem('inv_history')||'[]');
+// history is array of {periodLabel, start, end, records, total, archivedAt}
+
+function archiveCurrentPeriod(){
+  const cur = getCurRecs(false);
+  if(!cur.length){ showToast(t('histAlreadyEmpty'),'err'); return; }
+  const {start,end} = getPeriodRange();
+  const fmt = d => `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  const label = `${fmt(start)} ~ ${fmt(end)}`;
+  // Check not already archived
+  const already = history.find(h=>h.periodLabel===label);
+  if(already){ showToast(t('histArchived'),'ok'); return; }
+  const total = cur.reduce((s,r)=>s+r.amount,0);
+  history.unshift({
+    periodLabel: label,
+    start: start.toISOString(),
+    end: end.toISOString(),
+    records: cur,
+    total,
+    archivedAt: new Date().toISOString()
+  });
+  localStorage.setItem('inv_history', JSON.stringify(history));
+  showToast(t('histArchived'),'ok');
+  renderHistory();
+  rebuildHistoryMonthSel();
+}
+
+function clearHistory(){
+  if(!confirm(t('confirmClear'))) return;
+  history=[];
+  localStorage.setItem('inv_history','[]');
+  renderHistory();
+  rebuildHistoryMonthSel();
+}
+
+function rebuildHistoryMonthSel(){
+  const sel=document.getElementById('hist-month-sel'); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML=`<option value="all">${t('histAllOpt')}</option>`;
+  history.forEach((h,i)=>{
+    const o=document.createElement('option');
+    o.value=i; o.textContent=h.periodLabel;
+    sel.appendChild(o);
+  });
+  sel.value=cur;
+}
+
+function renderHistory(){
+  rebuildHistoryMonthSel();
+  const container=document.getElementById('hist-container'); if(!container) return;
+  const statsRow=document.getElementById('hist-stats-row');
+  if(!history.length){
+    container.innerHTML=`<div class="empty">${t('histEmpty')}</div>`;
+    if(statsRow) statsRow.style.display='none';
+    return;
+  }
+  const sel=document.getElementById('hist-month-sel');
+  const selVal=sel?sel.value:'all';
+  const filtered = selVal==='all' ? history : [history[parseInt(selVal)]].filter(Boolean);
+
+  // Stats for filtered view
+  const allRecs=filtered.flatMap(h=>h.records);
+  const totalAmt=filtered.reduce((s,h)=>s+h.total,0);
+  const cats={};
+  allRecs.forEach(r=>{cats[r.cat]=(cats[r.cat]||0)+r.amount;});
+  const topCat=Object.entries(cats).sort((a,b)=>b[1]-a[1])[0];
+  if(statsRow){
+    statsRow.style.display='grid';
+    document.getElementById('hist-total').textContent='$'+totalAmt.toLocaleString();
+    document.getElementById('hist-count').textContent=allRecs.length;
+    document.getElementById('hist-top').textContent=topCat?(ce(topCat[0])+cl(topCat[0])):'—';
+  }
+
+  // Render by period
+  container.innerHTML=filtered.map(h=>{
+    const rHtml=h.records.slice().reverse().map(r=>{
+      const color=CATS[r.cat]?.color||'#888';
+      return `<div class="rec-item" style="cursor:default">
+        <div class="cat-ico" style="background:${color}22;border:.5px solid ${color}44">${ce(r.cat)}</div>
+        <div class="rec-info"><div class="rec-name">${r.name}</div><div class="rec-meta">${cl(r.cat)} · ${r.date}</div></div>
+        <div class="rec-amt">$${r.amount.toLocaleString()}</div>
+      </div>`;
+    }).join('');
+    const periodTotal=h.records.reduce((s,r)=>s+r.amount,0);
+    return `<div style="margin-bottom:12px">
+      <div class="hist-period-header">
+        <span>📅 ${h.periodLabel}</span>
+        <span class="hist-period-sum">${h.records.length}${t('histLblCount')} · $${periodTotal.toLocaleString()}</span>
+      </div>
+      ${rHtml}
+    </div>`;
+  }).join('');
 }
 function showModal(id){
   if(id==='help-modal'){openHelp();}
@@ -1604,25 +1789,10 @@ applyFontSize();
 applyBg();
 applyI18n();
 updateAll();
-// Firebase init & subscribe if already paired, also listen for incoming pair requests
+// Firebase init — always start listeners so device B gets notified even before it pairs
 try{
   initFirebase();
-  if(partnerCode) subscribeFB();
-  else if(fbDB){
-    // Even without partner, listen for someone trying to pair with us
-    fbDB.ref(`pairRequests/${myCode}`).on('value', snap=>{
-      const req=snap.val();
-      if(req&&req.from&&req.from!==myCode&&!partnerCode){
-        const theirCode=req.from;
-        partnerCode=theirCode;
-        localStorage.setItem('inv_partner',theirCode);
-        document.getElementById('partner-inp').value=theirCode;
-        showToast(`🔗 ${theirCode} ${t('pairSuccess')}`,'ok');
-        updatePairUI();
-        subscribeFB();
-      }
-    });
-  }
+  startFBListeners(); // listens for incoming pair requests AND subscribes room if already paired
 }catch(e){ console.warn('Firebase init failed:',e); }
 
 </script>
