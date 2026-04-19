@@ -622,7 +622,7 @@ const L={
     helpTtl:'❓ 功能說明',
     budTtl:'💵 月預算設定',blBudget:'月預算上限',blSavings:'本月存入',blSpent:'已花費',blSpent2:'本期已花',blBalance:'目前結餘',blSavings2:'已存入',blRemain:'可花餘額',
     clTtl:'🎯 各類別上限 & 低消提示',clHMax:'上限',clHMin:'低消提示',
-    pairTtl:'🫶🏻 跨裝置配對',pairSub:'將自己的配對碼分享給對方，輸入對方的碼即可跨裝置連結。',pairMyLbl:'我的配對碼（分享給對方）：',pairBtn:'配對',unpairBtn:'解除配對',pairNotice:'💡 使用Firebase即時資料庫，配對後雙方資料即時同步。',pairedTxt:'已與對方配對',connected:'已連結',disconnected:'未配對',pairSuccess:'配對成功！',pairFail:'配對碼無效（需6碼英數）',pairSelf:'不能配對自己',
+    pairTtl:'🫶🏻 跨裝置配對',pairSub:'將自己的配對碼分享給對方，輸入對方的碼即可跨裝置連結。',pairMyLbl:'我的配對碼（分享給對方）：',pairBtn:'配對',unpairBtn:'解除配對',pairNotice:'💡 使用Firebase即時資料庫，配對後雙方資料即時同步。',pairedTxt:'已與對方配對',connected:'已連結',disconnected:'未配對',pairSuccess:'配對成功！',pairFail:'配對碼無效（需6碼英數）',pairSelf:'不能配對自己',pairAlreadyTaken:'該裝置已與其他裝置配對，無法連線',
     shBudTtl:'💵 共同月預算',shBlBudget:'共同預算上限',shBlSavings:'共同存入',shBlSpent:'共同已花',shBlRemain:'共同餘額',
     shAddTtl:'➕ 新增共同消費',shAddT:'新增共同',shScanT:'掃描',shListTtl:'共同消費明細',shClr:'清除',
     shAdviceTtl:'💡 共同消費建議',shChartTtl:'共同消費分佈',
@@ -657,7 +657,7 @@ const L={
     helpTtl:'❓ Help',
     budTtl:'💵 Monthly Budget',blBudget:'Budget limit',blSavings:'Saved this month',blSpent:'Spent',blSpent2:'Period spent',blBalance:'Current balance',blSavings2:'Total saved',blRemain:'Available',
     clTtl:'🎯 Category Limits & Alerts',clHMax:'Limit',clHMin:'Min alert',
-    pairTtl:'👫 Cross-device Pair',pairSub:'Share your code with partner, enter theirs to link across devices.',pairMyLbl:'My pair code (share this):',pairBtn:'Pair',unpairBtn:'Unpair',pairNotice:'💡 Uses Firebase Realtime DB — data syncs instantly after pairing.',pairedTxt:'Paired with partner',connected:'Connected',disconnected:'Not paired',pairSuccess:'Paired successfully!',pairFail:'Invalid code (6 alphanumeric)',pairSelf:"Can't pair with yourself",
+    pairTtl:'👫 Cross-device Pair',pairSub:'Share your code with partner, enter theirs to link across devices.',pairMyLbl:'My pair code (share this):',pairBtn:'Pair',unpairBtn:'Unpair',pairNotice:'💡 Uses Firebase Realtime DB — data syncs instantly after pairing.',pairedTxt:'Paired with partner',connected:'Connected',disconnected:'Not paired',pairSuccess:'Paired successfully!',pairFail:'Invalid code (6 alphanumeric)',pairSelf:"Can't pair with yourself",pairAlreadyTaken:'That device is already paired with another device',
     shBudTtl:'💵 Shared Budget',shBlBudget:'Shared limit',shBlSavings:'Shared savings',shBlSpent:'Shared spent',shBlRemain:'Shared balance',
     shAddTtl:'➕ Add Shared Expense',shAddT:'Add Shared',shScanT:'Scan',shListTtl:'Shared Details',shClr:'Clear',
     shAdviceTtl:'💡 Shared Advice',shChartTtl:'Shared Distribution',
@@ -692,7 +692,7 @@ const L={
     helpTtl:'❓ Ayuda',
     budTtl:'💵 Presupuesto Mensual',blBudget:'Límite',blSavings:'Ahorrado',blSpent:'Gastado',blSpent2:'Gastado',blBalance:'Saldo actual',blSavings2:'Total ahorrado',blRemain:'Disponible',
     clTtl:'🎯 Límites por Categoría',clHMax:'Límite',clHMin:'Alerta mín',
-    pairTtl:'👫 Vincular Dispositivos',pairSub:'Comparte tu código con tu pareja e ingresa el suyo.',pairMyLbl:'Mi código (compártelo):',pairBtn:'Vincular',unpairBtn:'Desvincular',pairNotice:'💡 Usa Firebase Realtime DB — sincronización instantánea.',pairedTxt:'Vinculado con pareja',connected:'Conectado',disconnected:'Sin vincular',pairSuccess:'¡Vinculado!',pairFail:'Código inválido (6 alfanuméricos)',pairSelf:'No puedes vincularte contigo mismo',
+    pairTtl:'👫 Vincular Dispositivos',pairSub:'Comparte tu código con tu pareja e ingresa el suyo.',pairMyLbl:'Mi código (compártelo):',pairBtn:'Vincular',unpairBtn:'Desvincular',pairNotice:'💡 Usa Firebase Realtime DB — sincronización instantánea.',pairedTxt:'Vinculado con pareja',connected:'Conectado',disconnected:'Sin vincular',pairSuccess:'¡Vinculado!',pairFail:'Código inválido (6 alfanuméricos)',pairSelf:'No puedes vincularte contigo mismo',pairAlreadyTaken:'Ese dispositivo ya está vinculado con otro',
     shBudTtl:'💵 Presupuesto Compartido',shBlBudget:'Límite compartido',shBlSavings:'Ahorro compartido',shBlSpent:'Gastado compartido',shBlRemain:'Saldo compartido',
     shAddTtl:'➕ Agregar Compartido',shAddT:'Agregar',shScanT:'Escanear',shListTtl:'Detalles Compartidos',shClr:'Limpiar',
     shAdviceTtl:'💡 Consejos Compartidos',shChartTtl:'Distribución Compartida',
@@ -946,16 +946,21 @@ function saveCatLim(cat,type){
   if(type==='max'){ if(v>0)catLimits[cat]=v; else delete catLimits[cat]; localStorage.setItem('inv_cat_lim',JSON.stringify(catLimits)); }
   else { if(v>0)catMins[cat]=v; else delete catMins[cat]; localStorage.setItem('inv_cat_min',JSON.stringify(catMins)); }
 }
-function checkCatAlerts(){
+function checkCatAlerts(addedCat=null){
+  // Only check the category that was just added (not all categories every time)
   const cur=getCurRecs(false); const cats={};
   cur.forEach(r=>{cats[r.cat]=(cats[r.cat]||0)+r.amount;});
-  for(const[cat,lim] of Object.entries(catLimits)){
+
+  const catsToCheck = addedCat ? [addedCat] : Object.keys(cats);
+
+  for(const cat of catsToCheck){
     const sp=cats[cat]||0;
-    if(sp>lim) showToast('⚠️ '+t('catOverMsg').replace('{cat}',ce(cat)+cl(cat)).replace('${limit}',lim.toLocaleString()).replace('${spent}',sp.toLocaleString()),'err');
-  }
-  for(const[cat,mn] of Object.entries(catMins)){
-    const sp=cats[cat]||0;
-    if(sp>0&&sp<mn) showToast('ℹ️ '+t('catMinMsg').replace('{cat}',ce(cat)+cl(cat)).replace('${spent}',sp.toLocaleString()).replace('${min}',mn.toLocaleString()));
+    if(catLimits[cat]&&sp>catLimits[cat]){
+      showToast('⚠️ '+t('catOverMsg').replace('{cat}',ce(cat)+cl(cat)).replace('${limit}',catLimits[cat].toLocaleString()).replace('${spent}',sp.toLocaleString()),'err');
+    }
+    if(catMins[cat]&&sp>0&&sp<catMins[cat]){
+      showToast('ℹ️ '+t('catMinMsg').replace('{cat}',ce(cat)+cl(cat)).replace('${spent}',sp.toLocaleString()).replace('${min}',catMins[cat].toLocaleString()));
+    }
   }
 }
 
@@ -1187,9 +1192,9 @@ function addRecord(sh=false){
   else{records.push(entry);saveRecs();}
   clearAdd(sh);
   updateAll();
-  renderRecent(); // Fix 2: update recent list below add form
+  renderRecent();
   showToast(`✅ ${t('addOk')}: ${ce(cat)}${name} $${amount.toLocaleString()} (${cl(cat)})`,'ok');
-  checkCatAlerts();
+  if(!sh) checkCatAlerts(cat); // only check the category just added
 }
 function clearAdd(sh=false){
   const pfx=sh?'sh-':'';
@@ -1484,15 +1489,16 @@ function doPair(){
 }
 function unpair(){
   if(fbDB&&partnerCode){
-    // 1. Signal partner to unpair
+    // Signal partner to unpair
     fbDB.ref(`unpairSignals/${partnerCode}`).set({from:myCode, ts:Date.now()}).catch(()=>{});
-    // 2. Clean up our pairRequest so partner's listener won't re-pair
+    // Clean up pairRequests
     fbDB.ref(`pairRequests/${partnerCode}`).remove().catch(()=>{});
     fbDB.ref(`pairRequests/${myCode}`).remove().catch(()=>{});
-    // 3. Clean up room
+    // Clean up listeners
     try{
       fbDB.ref(`pairRequests/${myCode}`).off();
       fbDB.ref(`unpairSignals/${myCode}`).off();
+      fbDB.ref(`pairReject/${myCode}`).off();
       if(fbCurrentRoom) fbDB.ref(`rooms/${fbCurrentRoom}`).off();
       if(fbCurrentRoom) fbDB.ref(`rooms/${fbCurrentRoom}/members/${myCode}`).remove().catch(()=>{});
     }catch(e){}
@@ -1501,20 +1507,33 @@ function unpair(){
   partnerCode=''; localStorage.setItem('inv_partner','');
   document.getElementById('partner-inp').value='';
   updatePairUI(); updateAll();
-  // Restart listeners so we can accept new pair requests
-  if(fbDB) startFBListeners();
+  // Update presence to show we're now free
+  if(fbDB){ publishPresence(); startFBListeners(); }
 }
 
 // startFBListeners: always listen for incoming pair requests AND unpair signals
 function startFBListeners(){
   if(!fbDB){ setFbStatus('',false); return; }
 
-  // Listen for incoming pair requests (fires immediately if request already exists in Firebase)
+  // Publish our current status to Firebase presence node
+  // Other devices can read this to see if we're already paired
+  publishPresence();
+
+  // Listen for incoming pair requests
   fbDB.ref(`pairRequests/${myCode}`).on('value', snap=>{
     const req=snap.val();
     if(!req||!req.from) return;
     const theirCode=req.from;
     if(theirCode===myCode) return;
+
+    // If we're already paired with someone ELSE, reject the request
+    if(partnerCode && theirCode!==partnerCode){
+      // Tell the requester we're already taken
+      fbDB.ref(`pairReject/${theirCode}`).set({
+        from:myCode, reason:'already_paired', ts:Date.now()
+      }).catch(()=>{});
+      return;
+    }
 
     if(theirCode!==partnerCode){
       partnerCode=theirCode;
@@ -1522,29 +1541,56 @@ function startFBListeners(){
       document.getElementById('partner-inp').value=theirCode;
       showToast(`🫶🏻 ${theirCode} ${t('pairSuccess')}`,'ok');
       updatePairUI();
+      publishPresence(); // update presence to show we're now paired
     }
     subscribeRoom(theirCode);
   }, ()=>{ setFbStatus('',false); });
+
+  // Listen for pair rejections (when target is already paired with someone else)
+  fbDB.ref(`pairReject/${myCode}`).on('value', snap=>{
+    const rej=snap.val();
+    if(!rej||!rej.from) return;
+    if(rej.reason==='already_paired'){
+      showToast(`⚠️ ${rej.from} ${t('pairAlreadyTaken')}`,'err');
+      // Clean up our side since pairing failed
+      if(partnerCode===rej.from){
+        partnerCode=''; localStorage.setItem('inv_partner','');
+        document.getElementById('partner-inp').value='';
+        updatePairUI();
+      }
+      fbDB.ref(`pairReject/${myCode}`).remove().catch(()=>{});
+    }
+  });
 
   // Listen for unpair signal from partner
   fbDB.ref(`unpairSignals/${myCode}`).on('value', snap=>{
     const sig=snap.val();
     if(!sig||!sig.from) return;
     if(sig.from===partnerCode){
-      // Partner unpaired us — clean up locally
       showToast('🔗 對方已解除配對','err');
-      // Remove the signal
       fbDB.ref(`unpairSignals/${myCode}`).remove().catch(()=>{});
-      // Clean up room listener
       if(fbCurrentRoom){ try{ fbDB.ref(`rooms/${fbCurrentRoom}`).off(); }catch(e){} }
       fbListener=null; fbCurrentRoom=null;
       partnerCode=''; localStorage.setItem('inv_partner','');
+      document.getElementById('partner-inp').value='';
       updatePairUI(); updateAll();
+      publishPresence(); // update presence to show we're now free
     }
   });
 
   // If already paired from previous session, subscribe room
   if(partnerCode) subscribeRoom(partnerCode);
+}
+
+// Publish our pairing status so others can check before requesting
+function publishPresence(){
+  if(!fbDB) return;
+  fbDB.ref(`presence/${myCode}`).set({
+    code:myCode,
+    paired:!!partnerCode,
+    pairedWith:partnerCode||'',
+    ts:Date.now()
+  }).catch(()=>{});
 }
 
 function subscribeRoom(withCode){
@@ -1607,12 +1653,33 @@ function subscribeRoom(withCode){
   }, ()=>{ showToast('Firebase sync error','err'); });
 }
 
-// Called by doPair() when WE initiate pairing
+// Called by doPair() — checks if target is free before sending request
 function initiatePair(theirCode){
-  // Write to their pairRequests — this is the ONE signal that triggers their auto-accept
-  fbDB.ref(`pairRequests/${theirCode}`).set({from:myCode, ts:Date.now()})
-    .then(()=>{ subscribeRoom(theirCode); })
-    .catch(()=>{ showToast('Firebase write failed','err'); });
+  if(!fbDB){ showToast('Firebase 未連線','err'); return; }
+
+  // Check target's presence first
+  fbDB.ref(`presence/${theirCode}`).once('value').then(snap=>{
+    const presence=snap.val();
+    // If they exist in presence AND are paired with someone other than us
+    if(presence && presence.paired && presence.pairedWith && presence.pairedWith!==myCode){
+      // Target already paired with another device
+      showToast(`⚠️ ${theirCode} ${t('pairAlreadyTaken')}`,'err');
+      // Revert our local pairing
+      partnerCode=''; localStorage.setItem('inv_partner','');
+      document.getElementById('partner-inp').value='';
+      updatePairUI();
+      return;
+    }
+    // Target is free (or already paired with us) — send request
+    fbDB.ref(`pairRequests/${theirCode}`).set({from:myCode, ts:Date.now()})
+      .then(()=>{ subscribeRoom(theirCode); publishPresence(); })
+      .catch(()=>{ showToast('Firebase write failed','err'); });
+  }).catch(()=>{
+    // Can't read presence (network issue or new user) — try anyway
+    fbDB.ref(`pairRequests/${theirCode}`).set({from:myCode, ts:Date.now()})
+      .then(()=>{ subscribeRoom(theirCode); publishPresence(); })
+      .catch(()=>{ showToast('Firebase write failed','err'); });
+  });
 }
 
 // Legacy alias
