@@ -1482,18 +1482,19 @@ function doPair(){
   const code=document.getElementById('partner-inp').value.trim().toUpperCase();
   if(!/^[A-Z0-9]{6}$/.test(code)){showToast(t('pairFail'),'err');return;}
   if(code===myCode){showToast(t('pairSelf'),'err');return;}
-  partnerCode=code; localStorage.setItem('inv_partner',code);
-  showToast(t('pairSuccess'),'ok');
-  updatePairUI();
-  initiatePair(code); // writes to partner's pairRequests → triggers their auto-accept
+  if(!fbDB){showToast('Firebase 未連線','err');return;}
+  initiatePair(code);
 }
 function unpair(){
   if(fbDB&&partnerCode){
     // Signal partner to unpair
     fbDB.ref(`unpairSignals/${partnerCode}`).set({from:myCode, ts:Date.now()}).catch(()=>{});
     // Clean up pairRequests
-    fbDB.ref(`pairRequests/${partnerCode}`).remove().catch(()=>{});
-    fbDB.ref(`pairRequests/${myCode}`).remove().catch(()=>{});
+    fbDB.ref('pairRequests/'+partnerCode).remove().catch(()=>{});
+    fbDB.ref('pairRequests/'+myCode).remove().catch(()=>{});
+    // Release the pair locks so both devices are free to pair again
+    fbDB.ref('pairLock/'+myCode).remove().catch(()=>{});
+    fbDB.ref('pairLock/'+partnerCode).remove().catch(()=>{});
     // Clean up listeners
     try{
       fbDB.ref(`pairRequests/${myCode}`).off();
@@ -1653,32 +1654,46 @@ function subscribeRoom(withCode){
   }, ()=>{ showToast('Firebase sync error','err'); });
 }
 
-// Called by doPair() — checks if target is free before sending request
+// Atomic pair lock using Firebase transaction.
+// pairLock/CODE = {owner: WHO_PAIRED_WITH_THIS_DEVICE}
+// Transaction ensures only one device can lock a target at a time.
 function initiatePair(theirCode){
-  if(!fbDB){ showToast('Firebase 未連線','err'); return; }
-
-  // Check target's presence first
-  fbDB.ref(`presence/${theirCode}`).once('value').then(snap=>{
-    const presence=snap.val();
-    // If they exist in presence AND are paired with someone other than us
-    if(presence && presence.paired && presence.pairedWith && presence.pairedWith!==myCode){
-      // Target already paired with another device
-      showToast(`⚠️ ${theirCode} ${t('pairAlreadyTaken')}`,'err');
-      // Revert our local pairing
-      partnerCode=''; localStorage.setItem('inv_partner','');
-      document.getElementById('partner-inp').value='';
-      updatePairUI();
-      return;
+  showToast('🔄 連線中...', null);
+  const lockRef = fbDB.ref('pairLock/'+theirCode);
+  lockRef.transaction(function(current){
+    if(current === null){
+      // Free — claim the lock
+      return { owner: myCode, ts: Date.now() };
     }
-    // Target is free (or already paired with us) — send request
-    fbDB.ref(`pairRequests/${theirCode}`).set({from:myCode, ts:Date.now()})
-      .then(()=>{ subscribeRoom(theirCode); publishPresence(); })
-      .catch(()=>{ showToast('Firebase write failed','err'); });
-  }).catch(()=>{
-    // Can't read presence (network issue or new user) — try anyway
-    fbDB.ref(`pairRequests/${theirCode}`).set({from:myCode, ts:Date.now()})
-      .then(()=>{ subscribeRoom(theirCode); publishPresence(); })
-      .catch(()=>{ showToast('Firebase write failed','err'); });
+    if(current.owner === myCode){
+      // We already own it — refresh
+      return { owner: myCode, ts: Date.now() };
+    }
+    // Someone else owns it — abort (return undefined = don't commit)
+    return undefined;
+  }, function(error, committed, snap){
+    if(error){
+      showToast('Firebase error: '+error.message,'err');
+      partnerCode=''; localStorage.setItem('inv_partner','');
+      document.getElementById('partner-inp').value=''; updatePairUI(); return;
+    }
+    if(!committed){
+      // Lock taken by someone else
+      showToast('\u26a0\ufe0f '+theirCode+' '+t('pairAlreadyTaken'),'err');
+      partnerCode=''; localStorage.setItem('inv_partner','');
+      document.getElementById('partner-inp').value=''; updatePairUI(); return;
+    }
+    // Lock claimed successfully — proceed with pairing
+    partnerCode=theirCode;
+    localStorage.setItem('inv_partner',theirCode);
+    document.getElementById('partner-inp').value=theirCode;
+    // Lock our own device too (so others can't pair with us)
+    fbDB.ref('pairLock/'+myCode).set({owner:theirCode, ts:Date.now()}).catch(function(){});
+    // Trigger target device's auto-accept via pairRequests
+    fbDB.ref('pairRequests/'+theirCode).set({from:myCode, ts:Date.now()}).catch(function(){});
+    showToast(t('pairSuccess'),'ok');
+    updatePairUI();
+    subscribeRoom(theirCode);
   });
 }
 
