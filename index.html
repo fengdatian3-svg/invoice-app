@@ -50,8 +50,8 @@ body{font-family:'Inter','Noto Sans TC',sans-serif;min-height:100vh;color:var(--
 .lang-sel{background:rgba(255,255,255,0.1);border:.5px solid var(--cbr);border-radius:20px;padding:3px 7px;color:#fff;font-size:10px;cursor:pointer;outline:none}
 .lang-sel option{background:#1e2235}
 
-/* TABS */
-.tab-row{display:flex;gap:3px;padding:7px 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-bottom:.5px solid rgba(255,255,255,0.06)}
+/* TABS - sticky below topbar, stays visible when keyboard opens */
+.tab-row{display:flex;gap:3px;padding:7px 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-bottom:.5px solid rgba(255,255,255,0.06);position:sticky;top:52px;z-index:19;backdrop-filter:blur(10px);background:rgba(26,26,46,0.85)}
 .tab-row::-webkit-scrollbar{display:none}
 .tab-btn{flex:none;padding:5px 10px;border-radius:7px;border:.5px solid var(--cbr);background:transparent;color:var(--ts);font-size:11px;cursor:pointer;font-family:'Inter','Noto Sans TC',sans-serif;transition:all .15s;white-space:nowrap}
 .tab-btn.active{background:var(--ac);color:#1a1a2e;border-color:var(--ac);font-weight:600}
@@ -128,6 +128,13 @@ input[type="date"].inp{
 .rec-edit:hover{color:var(--ac)}
 .rec-del{background:none;border:none;color:rgba(255,255,255,0.22);font-size:13px;cursor:pointer;padding:2px 3px;flex-shrink:0}
 .rec-del:hover{color:var(--ac3)}
+/* CATEGORY FILTER CHIPS */
+.cat-filter-row{display:flex;gap:5px;padding:6px 10px 4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cat-filter-row::-webkit-scrollbar{display:none}
+.cat-chip{flex:none;padding:4px 11px;border-radius:16px;border:.5px solid var(--cbr);background:transparent;color:var(--ts);font-size:11px;cursor:pointer;font-family:'Inter','Noto Sans TC',sans-serif;transition:all .15s;white-space:nowrap}
+.cat-chip.on{font-weight:600;color:#1a1a2e;border-color:transparent}
+/* Filter total bar */
+.filter-total{padding:2px 10px 6px;font-size:11px;color:var(--ts)}
 .empty{text-align:center;padding:22px 14px;color:var(--ts);font-size:12px;line-height:1.7}
 
 /* CHART — fixed overflow with padding */
@@ -284,6 +291,12 @@ input[type="date"].inp{
     <button class="btn btn-s" onclick="clearAdd(false)">↺</button>
   </div>
 </div>
+<!-- Recent records shown below add form -->
+<div id="add-recent-header" style="display:flex;align-items:center;justify-content:space-between;padding:4px 10px 4px;margin-top:2px">
+  <span style="font-size:11px;color:var(--ts)" id="add-recent-lbl">最近新增</span>
+  <span style="font-size:10px;color:var(--ac);cursor:pointer" onclick="gotoTab(2,document.getElementById('tb2'))" id="add-see-all-lbl">查看全部 →</span>
+</div>
+<div id="add-recent-container" style="padding:0 10px"></div>
 </div>
 
 <!-- ===== TAB 2: 明細 ===== -->
@@ -292,6 +305,9 @@ input[type="date"].inp{
     <span style="font-size:12px;color:var(--ts)" id="list-ttl">消費明細</span>
     <button class="btn btn-d" style="flex:none;padding:5px 10px;font-size:11px" onclick="clearAll(false)" id="clr-all-btn">清除全部</button>
   </div>
+  <!-- Category filter chips -->
+  <div class="cat-filter-row" id="cat-filter-row"></div>
+  <div class="filter-total" id="filter-total"></div>
   <div id="recs-container" style="padding:0 10px"></div>
 </div>
 
@@ -624,6 +640,8 @@ const L={
     histNotice:'結算日到時封存本期，記錄保存在歷史，新一期重新計算。',
     histFilterLbl:'篩選：',histAllOpt:'全部',histLblTotal:'期間支出',histLblCount:'筆',histLblTop:'最多類別',
     histEmpty:'📭 尚無歷史記錄\n封存本期後記錄會在這裡',histArchived:'✅ 本期已封存！',histAlreadyEmpty:'本期無記錄可封存',
+    recentLbl:'最近新增',seeAllLbl:'查看全部 →',
+    pairLockedPh:'已配對（先解除才能更換）',
   },
   en:{
     appTitle:'💳 Invoice Manager',
@@ -657,6 +675,8 @@ const L={
     histNotice:'Archive current period records on billing day. Archived records are kept here separately from active records.',
     histFilterLbl:'Filter:',histAllOpt:'All',histLblTotal:'Period Total',histLblCount:'Records',histLblTop:'Top Category',
     histEmpty:'📭 No history yet\nArchive this period to save records here',histArchived:'✅ Period archived!',histAlreadyEmpty:'No records to archive this period',
+    recentLbl:'Recently Added',seeAllLbl:'See all →',
+    pairLockedPh:'Paired (unpair first to change)',
   },
   es:{
     appTitle:'💳 Gestor de Facturas',
@@ -690,6 +710,8 @@ const L={
     histNotice:'Archiva los registros del período actual. Los registros archivados se guardan aquí por separado.',
     histFilterLbl:'Filtrar:',histAllOpt:'Todo',histLblTotal:'Total del Período',histLblCount:'Registros',histLblTop:'Categoría Top',
     histEmpty:'📭 Sin historial aún\nArchiva este período para guardar registros aquí',histArchived:'✅ ¡Período archivado!',histAlreadyEmpty:'Sin registros para archivar',
+    recentLbl:'Agregados recientemente',seeAllLbl:'Ver todo →',
+    pairLockedPh:'Vinculado (desvincular primero)',
   }
 };
 const CATS={
@@ -820,6 +842,12 @@ function applyI18n(){
   const hLP=document.getElementById('hist-lbl-top'); if(hLP) hLP.textContent=t('histLblTop');
   // Update pair title icon (always use 🫶🏻)
   const pTtl=document.getElementById('pair-ttl'); if(pTtl) pTtl.textContent='🫶🏻 '+t('pairTtl').replace(/^[^\s]+\s/,'');
+  // Recent records labels
+  const rLbl=document.getElementById('add-recent-lbl'); if(rLbl) rLbl.textContent=t('recentLbl');
+  const saLbl=document.getElementById('add-see-all-lbl'); if(saLbl) saLbl.textContent=t('seeAllLbl');
+  // Pair input placeholder (updates based on paired state)
+  const pInp=document.getElementById('partner-inp');
+  if(pInp&&!pInp.disabled) pInp.placeholder=t('placeName')==='品項名稱（如：午餐、計程車）'?'輸入對方碼':'Enter partner code';
   renderHistory();
 }
 function setLang(l){ CL=l; localStorage.setItem('inv_lang',l); document.getElementById('lang-sel').value=l; applyI18n(); }
@@ -1016,19 +1044,82 @@ function updateAdvice(sh=false){
 }
 
 // ==================== RECORDS ====================
+let activeCatFilter = 'all'; // 'all' or a category key like '食'
+
+function buildCatFilter(){
+  const row=document.getElementById('cat-filter-row'); if(!row) return;
+  const cur=getCurRecs(false);
+  const cats={}; cur.forEach(r=>{cats[r.cat]=(cats[r.cat]||0)+r.amount;});
+  // All chip
+  const allColor = activeCatFilter==='all'?'var(--ac)':'transparent';
+  let html=`<button class="cat-chip ${activeCatFilter==='all'?'on':''}" style="background:${allColor};border-color:${activeCatFilter==='all'?'transparent':'var(--cbr)'}" onclick="setCatFilter('all')">${{zh:'全部',en:'All',es:'Todo'}[CL]||'全部'}</button>`;
+  // One chip per category that has records
+  Object.entries(cats).sort((a,b)=>b[1]-a[1]).forEach(([cat,amt])=>{
+    const color=CATS[cat]?.color||'#888';
+    const isOn=activeCatFilter===cat;
+    html+=`<button class="cat-chip ${isOn?'on':''}" style="background:${isOn?color+'cc':'transparent'};border-color:${isOn?'transparent':color+'66'};color:${isOn?'#1a1a2e':color}" onclick="setCatFilter('${cat}')">${ce(cat)}${cl(cat)}</button>`;
+  });
+  row.innerHTML=html;
+  // Update filter total
+  const totalEl=document.getElementById('filter-total'); if(!totalEl) return;
+  if(activeCatFilter==='all'){
+    const total=cur.reduce((s,r)=>s+r.amount,0);
+    totalEl.textContent=`${cur.length} ${t('histLblCount')} · $${total.toLocaleString()}`;
+  } else {
+    const filtered=cur.filter(r=>r.cat===activeCatFilter);
+    const total=filtered.reduce((s,r)=>s+r.amount,0);
+    totalEl.textContent=`${ce(activeCatFilter)}${cl(activeCatFilter)} · ${filtered.length} ${t('histLblCount')} · $${total.toLocaleString()}`;
+  }
+}
+
+function setCatFilter(cat){
+  activeCatFilter=cat;
+  buildCatFilter();
+  renderRecs(false);
+}
+
 function renderRecs(sh=false){
-  const recs=sh?shRecs:records;
+  const allRecs=sh?shRecs:records;
   const c=document.getElementById(sh?'sh-recs-container':'recs-container');
-  if(!recs.length){c.innerHTML=`<div class="empty">${t('noRecs')}</div>`;return;}
+  // Apply category filter (only for personal, not shared)
+  const recs = (!sh && activeCatFilter!=='all')
+    ? allRecs.filter(r=>r.cat===activeCatFilter)
+    : allRecs;
+  if(!recs.length){
+    c.innerHTML=`<div class="empty">${activeCatFilter!=='all'&&!sh?`${ce(activeCatFilter)}${cl(activeCatFilter)} ${t('noRecs')}`:t('noRecs')}</div>`;
+    return;
+  }
   c.innerHTML=recs.slice().reverse().map((r,ri)=>{
-    const color=CATS[r.cat]?.color||'#888', idx=recs.length-1-ri;
+    // Find real index in original allRecs array
+    const realIdx=allRecs.indexOf(r);
+    const color=CATS[r.cat]?.color||'#888';
     const shBadge=r.shared?`<span class="sh-badge">共同</span>`:'';
-    return `<div class="rec-item" onclick="openEdit(${idx},${sh})">
+    return `<div class="rec-item" onclick="openEdit(${realIdx},${sh})">
       <div class="cat-ico" style="background:${color}22;border:.5px solid ${color}44">${ce(r.cat)}</div>
       <div class="rec-info"><div class="rec-name">${r.name}${shBadge}</div><div class="rec-meta">${cl(r.cat)} · ${r.date}</div></div>
       <div class="rec-amt">$${r.amount.toLocaleString()}</div>
-      <button class="rec-edit" onclick="event.stopPropagation();openEdit(${idx},${sh})">✎</button>
-      <button class="rec-del" onclick="event.stopPropagation();deleteRec(${idx},${sh})">✕</button>
+      <button class="rec-edit" onclick="event.stopPropagation();openEdit(${realIdx},${sh})">✎</button>
+      <button class="rec-del" onclick="event.stopPropagation();deleteRec(${realIdx},${sh})">✕</button>
+    </div>`;
+  }).join('');
+  // Rebuild filter whenever records tab renders
+  if(!sh) buildCatFilter();
+}
+
+// Fix 2: Show last 5 records below add form
+function renderRecent(){
+  const container=document.getElementById('add-recent-container'); if(!container) return;
+  const hdr=document.getElementById('add-recent-header'); if(hdr) hdr.style.display=records.length?'flex':'none';
+  if(!records.length){container.innerHTML='';return;}
+  const recent=records.slice(-5).reverse();
+  container.innerHTML=recent.map(r=>{
+    const realIdx=records.indexOf(r);
+    const color=CATS[r.cat]?.color||'#888';
+    return `<div class="rec-item" onclick="openEdit(${realIdx},false)">
+      <div class="cat-ico" style="background:${color}22;border:.5px solid ${color}44">${ce(r.cat)}</div>
+      <div class="rec-info"><div class="rec-name">${r.name}</div><div class="rec-meta">${cl(r.cat)} · ${r.date}</div></div>
+      <div class="rec-amt">$${r.amount.toLocaleString()}</div>
+      <button class="rec-del" onclick="event.stopPropagation();deleteRec(${realIdx},false)">✕</button>
     </div>`;
   }).join('');
 }
@@ -1096,6 +1187,7 @@ function addRecord(sh=false){
   else{records.push(entry);saveRecs();}
   clearAdd(sh);
   updateAll();
+  renderRecent(); // Fix 2: update recent list below add form
   showToast(`✅ ${t('addOk')}: ${ce(cat)}${name} $${amount.toLocaleString()} (${cl(cat)})`,'ok');
   checkCatAlerts();
 }
@@ -1361,6 +1453,22 @@ function updatePairUI(){
   document.getElementById('pair-info-div').style.display=paired?'block':'none';
   document.getElementById('unpair-btn').textContent=t('unpairBtn');
   if(paired) document.getElementById('paired-txt').textContent=`${t('pairedTxt')}: ${partnerCode}`;
+  // Fix 1: Lock the input+button when already paired — can't pair another device
+  const inp=document.getElementById('partner-inp');
+  const btn=document.getElementById('pair-btn');
+  if(paired){
+    inp.disabled=true;
+    inp.style.opacity='0.4';
+    inp.placeholder='已配對（先解除才能更換）';
+    btn.disabled=true;
+    btn.style.opacity='0.4';
+  } else {
+    inp.disabled=false;
+    inp.style.opacity='1';
+    inp.placeholder='輸入對方碼';
+    btn.disabled=false;
+    btn.style.opacity='1';
+  }
   ['sh-bud-box','sh-add-box','sh-advice-box','sh-chart-box','sh-list-box'].forEach(id=>{
     document.getElementById(id).style.display=paired?'block':'none';
   });
@@ -1685,6 +1793,8 @@ function gotoTab(n,btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(n===0){updateChart(false);updateAdvice(false);}
+  if(n===1){renderRecent();}
+  if(n===2){buildCatFilter();renderRecs(false);}
   if(n===3){buildClList();}
   if(n===4){updateChart(true);updateAdvice(true);}
   if(n===5){renderHistory();}
@@ -1818,6 +1928,7 @@ function updateAll(){
   updateStats(); updateChart(false); updateChart(true);
   updateBudget(); renderRecs(false); renderRecs(true);
   updateAdvice(false); updateAdvice(true); updatePeriodLabel();
+  renderRecent(); buildCatFilter();
 }
 
 // ==================== INIT ====================
