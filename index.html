@@ -358,6 +358,10 @@ input[type="date"].inp{
     <button class="btn btn-d" style="width:100%;margin-top:8px" onclick="unpair()" id="unpair-btn">解除配對</button>
   </div>
   <div class="notice" style="margin-top:8px" id="pair-notice">💡 使用Firebase即時資料庫，配對後雙方資料即時同步。配對碼6碼英數。</div>
+  <!-- Firebase connection status -->
+  <div id="fb-status" style="margin-top:8px;padding:7px 10px;border-radius:8px;font-size:11px;background:rgba(255,255,255,0.06);border:.5px solid rgba(255,255,255,0.12);color:var(--ts)">
+    🔌 Firebase：檢查中...
+  </div>
 </div>
 <!-- Shared budget (shown when paired) -->
 <div id="sh-bud-box" style="display:none" class="sbox">
@@ -556,11 +560,36 @@ const FB_CONFIG = {
 let fbDB = null;
 let fbListener = null;
 let fbCurrentRoom = null;
+
+function setFbStatus(msg, ok=null){
+  const el=document.getElementById('fb-status'); if(!el) return;
+  const icon = ok===true?'🟢':ok===false?'🔴':'🟡';
+  el.textContent=`${icon} Firebase：${msg}`;
+  el.style.borderColor = ok===true?'rgba(6,214,160,0.35)':ok===false?'rgba(239,71,111,0.35)':'rgba(255,255,255,0.12)';
+  el.style.color = ok===true?'var(--ac2)':ok===false?'var(--ac3)':'var(--ts)';
+}
+
 function initFirebase(){
   try {
+    if(FB_CONFIG.apiKey==='AIzaSyDemo-replace-with-your-key'){
+      setFbStatus('尚未設定 Firebase！請更新 FB_CONFIG 中的 apiKey 和 databaseURL', false);
+      fbDB=null; return;
+    }
     if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     fbDB = firebase.database();
-  } catch(e){ fbDB = null; }
+    setFbStatus('連線中...', null);
+    // Test connection by reading .info/connected
+    fbDB.ref('.info/connected').on('value', snap=>{
+      if(snap.val()===true){
+        setFbStatus(`已連線 ✓  我的碼：${myCode}`, true);
+      } else {
+        setFbStatus('離線或連線中斷', false);
+      }
+    });
+  } catch(e){
+    fbDB=null;
+    setFbStatus('初始化失敗：'+e.message, false);
+  }
 }
 
 // ==================== i18n ====================
@@ -612,7 +641,7 @@ const L={
     helpTtl:'❓ Help',
     budTtl:'💵 Monthly Budget',blBudget:'Budget limit',blSavings:'Saved this month',blSpent:'Spent',blSpent2:'Period spent',blBalance:'Current balance',blSavings2:'Total saved',blRemain:'Available',
     clTtl:'🎯 Category Limits & Alerts',clHMax:'Limit',clHMin:'Min alert',
-    pairTtl:'🫶🏻 Cross-device Pair',pairSub:'Share your code with partner, enter theirs to link across devices.',pairMyLbl:'My pair code (share this):',pairBtn:'Pair',unpairBtn:'Unpair',pairNotice:'💡 Uses Firebase Realtime DB — data syncs instantly after pairing.',pairedTxt:'Paired with partner',connected:'Connected',disconnected:'Not paired',pairSuccess:'Paired successfully!',pairFail:'Invalid code (6 alphanumeric)',pairSelf:"Can't pair with yourself",
+    pairTtl:'👫 Cross-device Pair',pairSub:'Share your code with partner, enter theirs to link across devices.',pairMyLbl:'My pair code (share this):',pairBtn:'Pair',unpairBtn:'Unpair',pairNotice:'💡 Uses Firebase Realtime DB — data syncs instantly after pairing.',pairedTxt:'Paired with partner',connected:'Connected',disconnected:'Not paired',pairSuccess:'Paired successfully!',pairFail:'Invalid code (6 alphanumeric)',pairSelf:"Can't pair with yourself",
     shBudTtl:'💵 Shared Budget',shBlBudget:'Shared limit',shBlSavings:'Shared savings',shBlSpent:'Shared spent',shBlRemain:'Shared balance',
     shAddTtl:'➕ Add Shared Expense',shAddT:'Add Shared',shScanT:'Scan',shListTtl:'Shared Details',shClr:'Clear',
     shAdviceTtl:'💡 Shared Advice',shChartTtl:'Shared Distribution',
@@ -645,7 +674,7 @@ const L={
     helpTtl:'❓ Ayuda',
     budTtl:'💵 Presupuesto Mensual',blBudget:'Límite',blSavings:'Ahorrado',blSpent:'Gastado',blSpent2:'Gastado',blBalance:'Saldo actual',blSavings2:'Total ahorrado',blRemain:'Disponible',
     clTtl:'🎯 Límites por Categoría',clHMax:'Límite',clHMin:'Alerta mín',
-    pairTtl:'🫶🏻 Vincular Dispositivos',pairSub:'Comparte tu código con tu pareja e ingresa el suyo.',pairMyLbl:'Mi código (compártelo):',pairBtn:'Vincular',unpairBtn:'Desvincular',pairNotice:'💡 Usa Firebase Realtime DB — sincronización instantánea.',pairedTxt:'Vinculado con pareja',connected:'Conectado',disconnected:'Sin vincular',pairSuccess:'¡Vinculado!',pairFail:'Código inválido (6 alfanuméricos)',pairSelf:'No puedes vincularte contigo mismo',
+    pairTtl:'👫 Vincular Dispositivos',pairSub:'Comparte tu código con tu pareja e ingresa el suyo.',pairMyLbl:'Mi código (compártelo):',pairBtn:'Vincular',unpairBtn:'Desvincular',pairNotice:'💡 Usa Firebase Realtime DB — sincronización instantánea.',pairedTxt:'Vinculado con pareja',connected:'Conectado',disconnected:'Sin vincular',pairSuccess:'¡Vinculado!',pairFail:'Código inválido (6 alfanuméricos)',pairSelf:'No puedes vincularte contigo mismo',
     shBudTtl:'💵 Presupuesto Compartido',shBlBudget:'Límite compartido',shBlSavings:'Ahorro compartido',shBlSpent:'Gastado compartido',shBlRemain:'Saldo compartido',
     shAddTtl:'➕ Agregar Compartido',shAddT:'Agregar',shScanT:'Escanear',shListTtl:'Detalles Compartidos',shClr:'Limpiar',
     shAdviceTtl:'💡 Consejos Compartidos',shChartTtl:'Distribución Compartida',
@@ -1367,15 +1396,21 @@ function unpair(){
 // startFBListeners: always listen for incoming pair requests regardless of pairing status
 // Key design: pairRequests is ONE-WAY signal only. Room subscription is separate.
 function startFBListeners(){
-  if(!fbDB) return;
+  if(!fbDB){ setFbStatus('Firebase 未初始化', false); return; }
 
   // ── Step 1: Always watch for someone pairing with us ──
   // This fires even BEFORE we have a partnerCode, so device B sees A's request immediately
   fbDB.ref(`pairRequests/${myCode}`).on('value', snap=>{
     const req=snap.val();
-    if(!req||!req.from) return;
+    // Show what we received in the status bar for debugging
+    if(!req||!req.from){
+      if(!partnerCode) setFbStatus(`監聽中，等待配對請求... (${myCode})`, true);
+      return;
+    }
     const theirCode=req.from;
     if(theirCode===myCode) return; // ignore self
+
+    setFbStatus(`收到配對請求 來自 ${theirCode}`, true);
 
     if(theirCode!==partnerCode){
       // New pair request — auto-accept
@@ -1387,10 +1422,17 @@ function startFBListeners(){
     }
     // Always (re)subscribe to room when we get/confirm a pair signal
     subscribeRoom(theirCode);
+  }, err=>{
+    setFbStatus('監聽失敗：'+err.message, false);
   });
 
   // ── Step 2: If already paired from a previous session, subscribe room directly ──
-  if(partnerCode) subscribeRoom(partnerCode);
+  if(partnerCode){
+    setFbStatus(`已恢復配對 ${partnerCode}，同步中...`, true);
+    subscribeRoom(partnerCode);
+  } else {
+    setFbStatus(`監聽中，等待配對請求... (${myCode})`, true);
+  }
 }
 
 function subscribeRoom(withCode){
@@ -1576,7 +1618,7 @@ function applyCrop(){
 // ==================== HELP ====================
 const HELP={
   zh:{
-    tabs:['📊 總覽','➕ 新增','📋 明細','💰 預算','🫶🏻 共同','⚙️ 設定'],
+    tabs:['📊 總覽','➕ 新增','📋 明細','💰 預算','👫 共同','⚙️ 設定'],
     pages:[
       `<div class="hitem"><div class="hico">📊</div><div class="htxt"><strong>圓餅圖</strong><span>即時顯示六類消費佔比。圖表有動態效果但不會超出邊界。</span></div></div>
        <div class="hitem"><div class="hico">💡</div><div class="htxt"><strong>消費建議</strong><span>根據預算使用率與剩餘天數自動分析，顯示日均花費、預估月底總額，並建議減少比例最高的類別。</span></div></div>
@@ -1596,7 +1638,7 @@ const HELP={
     ]
   },
   en:{
-    tabs:['📊 Overview','➕ Add','📋 Details','💰 Budget','🫶🏻 Shared','⚙️ Settings'],
+    tabs:['📊 Overview','➕ Add','📋 Details','💰 Budget','👫 Shared','⚙️ Settings'],
     pages:[
       `<div class="hitem"><div class="hico">📊</div><div class="htxt"><strong>Pie Chart</strong><span>Real-time breakdown of 6 categories. Animated but stays within bounds.</span></div></div>
        <div class="hitem"><div class="hico">💡</div><div class="htxt"><strong>Spending Advice</strong><span>Auto-analyzes budget usage vs days left. Shows daily average, projected total, and suggests reducing the highest category.</span></div></div>`,
@@ -1610,7 +1652,7 @@ const HELP={
     ]
   },
   es:{
-    tabs:['📊 Resumen','➕ Agregar','📋 Detalles','💰 Presupuesto','🫶🏻 Compartido','⚙️ Config'],
+    tabs:['📊 Resumen','➕ Agregar','📋 Detalles','💰 Presupuesto','👫 Compartido','⚙️ Config'],
     pages:[
       `<div class="hitem"><div class="hico">📊</div><div class="htxt"><strong>Gráfico</strong><span>Desglose en tiempo real de 6 categorías. Animado pero sin desbordamiento.</span></div></div>`,
       `<div class="hitem"><div class="hico">🎤</div><div class="htxt"><strong>Voz</strong><span>Toca para iniciar, se detiene automáticamente. Muestra panel de confirmación antes de agregar.</span></div></div>`,
