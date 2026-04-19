@@ -551,7 +551,7 @@ input[type="date"].inp{
 // Using a shared public demo DB — for production, replace with your own Firebase config
 const FB_CONFIG = {
   apiKey: "AIzaSyDk91n3y06KEzy8e387Oyk5JlEjk4d67rw",
-  databaseURL: "https://invoice-app-d2dcd-default-rtdb.asia-southeast1.firebasedatabase.app"
+  databaseURL: "https://invoice-app-d2dcd-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
 let fbDB = null;
 let fbListener = null;
@@ -612,7 +612,7 @@ const L={
     helpTtl:'❓ Help',
     budTtl:'💵 Monthly Budget',blBudget:'Budget limit',blSavings:'Saved this month',blSpent:'Spent',blSpent2:'Period spent',blBalance:'Current balance',blSavings2:'Total saved',blRemain:'Available',
     clTtl:'🎯 Category Limits & Alerts',clHMax:'Limit',clHMin:'Min alert',
-    pairTtl:'👫 Cross-device Pair',pairSub:'Share your code with partner, enter theirs to link across devices.',pairMyLbl:'My pair code (share this):',pairBtn:'Pair',unpairBtn:'Unpair',pairNotice:'💡 Uses Firebase Realtime DB — data syncs instantly after pairing.',pairedTxt:'Paired with partner',connected:'Connected',disconnected:'Not paired',pairSuccess:'Paired successfully!',pairFail:'Invalid code (6 alphanumeric)',pairSelf:"Can't pair with yourself",
+    pairTtl:'🫶🏻 Cross-device Pair',pairSub:'Share your code with partner, enter theirs to link across devices.',pairMyLbl:'My pair code (share this):',pairBtn:'Pair',unpairBtn:'Unpair',pairNotice:'💡 Uses Firebase Realtime DB — data syncs instantly after pairing.',pairedTxt:'Paired with partner',connected:'Connected',disconnected:'Not paired',pairSuccess:'Paired successfully!',pairFail:'Invalid code (6 alphanumeric)',pairSelf:"Can't pair with yourself",
     shBudTtl:'💵 Shared Budget',shBlBudget:'Shared limit',shBlSavings:'Shared savings',shBlSpent:'Shared spent',shBlRemain:'Shared balance',
     shAddTtl:'➕ Add Shared Expense',shAddT:'Add Shared',shScanT:'Scan',shListTtl:'Shared Details',shClr:'Clear',
     shAdviceTtl:'💡 Shared Advice',shChartTtl:'Shared Distribution',
@@ -645,7 +645,7 @@ const L={
     helpTtl:'❓ Ayuda',
     budTtl:'💵 Presupuesto Mensual',blBudget:'Límite',blSavings:'Ahorrado',blSpent:'Gastado',blSpent2:'Gastado',blBalance:'Saldo actual',blSavings2:'Total ahorrado',blRemain:'Disponible',
     clTtl:'🎯 Límites por Categoría',clHMax:'Límite',clHMin:'Alerta mín',
-    pairTtl:'👫 Vincular Dispositivos',pairSub:'Comparte tu código con tu pareja e ingresa el suyo.',pairMyLbl:'Mi código (compártelo):',pairBtn:'Vincular',unpairBtn:'Desvincular',pairNotice:'💡 Usa Firebase Realtime DB — sincronización instantánea.',pairedTxt:'Vinculado con pareja',connected:'Conectado',disconnected:'Sin vincular',pairSuccess:'¡Vinculado!',pairFail:'Código inválido (6 alfanuméricos)',pairSelf:'No puedes vincularte contigo mismo',
+    pairTtl:'🫶🏻 Vincular Dispositivos',pairSub:'Comparte tu código con tu pareja e ingresa el suyo.',pairMyLbl:'Mi código (compártelo):',pairBtn:'Vincular',unpairBtn:'Desvincular',pairNotice:'💡 Usa Firebase Realtime DB — sincronización instantánea.',pairedTxt:'Vinculado con pareja',connected:'Conectado',disconnected:'Sin vincular',pairSuccess:'¡Vinculado!',pairFail:'Código inválido (6 alfanuméricos)',pairSelf:'No puedes vincularte contigo mismo',
     shBudTtl:'💵 Presupuesto Compartido',shBlBudget:'Límite compartido',shBlSavings:'Ahorro compartido',shBlSpent:'Gastado compartido',shBlRemain:'Saldo compartido',
     shAddTtl:'➕ Agregar Compartido',shAddT:'Agregar',shScanT:'Escanear',shListTtl:'Detalles Compartidos',shClr:'Limpiar',
     shAdviceTtl:'💡 Consejos Compartidos',shChartTtl:'Distribución Compartida',
@@ -1576,7 +1576,7 @@ function applyCrop(){
 // ==================== HELP ====================
 const HELP={
   zh:{
-    tabs:['📊 總覽','➕ 新增','📋 明細','💰 預算','👫 共同','⚙️ 設定'],
+    tabs:['📊 總覽','➕ 新增','📋 明細','💰 預算','🫶🏻 共同','⚙️ 設定'],
     pages:[
       `<div class="hitem"><div class="hico">📊</div><div class="htxt"><strong>圓餅圖</strong><span>即時顯示六類消費佔比。圖表有動態效果但不會超出邊界。</span></div></div>
        <div class="hitem"><div class="hico">💡</div><div class="htxt"><strong>消費建議</strong><span>根據預算使用率與剩餘天數自動分析，顯示日均花費、預估月底總額，並建議減少比例最高的類別。</span></div></div>
@@ -1596,7 +1596,7 @@ const HELP={
     ]
   },
   en:{
-    tabs:['📊 Overview','➕ Add','📋 Details','💰 Budget','👫 Shared','⚙️ Settings'],
+    tabs:['📊 Overview','➕ Add','📋 Details','💰 Budget','🫶🏻 Shared','⚙️ Settings'],
     pages:[
       `<div class="hitem"><div class="hico">📊</div><div class="htxt"><strong>Pie Chart</strong><span>Real-time breakdown of 6 categories. Animated but stays within bounds.</span></div></div>
        <div class="hitem"><div class="hico">💡</div><div class="htxt"><strong>Spending Advice</strong><span>Auto-analyzes budget usage vs days left. Shows daily average, projected total, and suggests reducing the highest category.</span></div></div>`,
@@ -1610,7 +1610,7 @@ const HELP={
     ]
   },
   es:{
-    tabs:['📊 Resumen','➕ Agregar','📋 Detalles','💰 Presupuesto','👫 Compartido','⚙️ Config'],
+    tabs:['📊 Resumen','➕ Agregar','📋 Detalles','💰 Presupuesto','🫶🏻 Compartido','⚙️ Config'],
     pages:[
       `<div class="hitem"><div class="hico">📊</div><div class="htxt"><strong>Gráfico</strong><span>Desglose en tiempo real de 6 categorías. Animado pero sin desbordamiento.</span></div></div>`,
       `<div class="hitem"><div class="hico">🎤</div><div class="htxt"><strong>Voz</strong><span>Toca para iniciar, se detiene automáticamente. Muestra panel de confirmación antes de agregar.</span></div></div>`,
