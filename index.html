@@ -1228,50 +1228,58 @@ function startVoice(sh=false){
   document.getElementById(viId).textContent='⏹️';
   document.getElementById(vtId).textContent=t('voiceStop');
   document.getElementById(vhId).textContent=t('voiceListening');
+
   let finalTranscript='';
+  let lastInterim='';  // iOS fallback: keep last interim in case isFinal never fires
   let silenceTimer=null;
-  let started=false;
-  // Fix 1: 0.8 seconds silence → auto stop
+
   const resetSilence=()=>{
     clearTimeout(silenceTimer);
     silenceTimer=setTimeout(()=>{ try{rec.stop();}catch(e){} }, 800);
   };
-  rec.onstart=()=>{ started=true; };
+
   rec.onresult=e=>{
     let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal) finalTranscript+=e.results[i][0].transcript;
-      else{ interim+=e.results[i][0].transcript; resetSilence(); }
+      if(e.results[i].isFinal){
+        finalTranscript+=e.results[i][0].transcript;
+      } else {
+        interim+=e.results[i][0].transcript;
+        resetSilence(); // restart silence timer on each interim word
+      }
     }
-    if(interim) document.getElementById(vhId).textContent='🎤 '+interim;
-    // If we have a final result, stop immediately
-    if(finalTranscript){ clearTimeout(silenceTimer); try{rec.stop();}catch(e){} }
+    if(interim){
+      lastInterim=interim; // always save latest interim as fallback
+      document.getElementById(vhId).textContent='🎤 '+interim;
+    }
   };
+
   rec.onerror=ev=>{
     clearTimeout(silenceTimer);
     if(ev.error!=='aborted'&&ev.error!=='no-speech')
       showToast(ev.error==='not-allowed'?t('voiceMicDenied'):t('voiceNoSupport'),'err');
     stopVoice(sh);
   };
+
   rec.onend=()=>{
     clearTimeout(silenceTimer);
-    // Fix 2: Reset UI state FIRST, then process result
-    // This ensures the orange mic indicator on iOS is released before we do anything else
+    // Reset UI (releases iOS orange mic indicator)
     if(sh){shIsRec=false;shRecObj=null;} else{isRec=false;recObj=null;}
     document.getElementById(btnId).className='btn btn-v';
     document.getElementById(viId).textContent='🎤';
     document.getElementById(vtId).textContent=t('voiceBtn');
     document.getElementById(vhId).textContent='';
-    if(finalTranscript.trim()) parseAndShowVoice(finalTranscript.trim(), sh);
+    // Use finalTranscript if available, fall back to lastInterim (iOS Safari fix)
+    const result=(finalTranscript||lastInterim).trim();
+    if(result) parseAndShowVoice(result, sh);
   };
+
   rec.start();
 }
 function stopVoice(sh=false){
   const rec=sh?shRecObj:recObj;
-  // Fix 2: Use stop() not abort() — abort() on iOS Safari leaves mic open (orange light stays)
-  // stop() gracefully ends recording and fires onend, which cleans up UI
+  // stop() not abort() — iOS Safari needs stop() to properly release the mic
   try{ if(rec){ rec.stop(); } }catch(e){}
-  // Don't clear isRec/recObj here — let onend handle it to avoid double-cleanup
 }
 
 function parseAndShowVoice(text, sh=false){
